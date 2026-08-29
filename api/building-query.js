@@ -1,5 +1,13 @@
 import nodemailer from 'nodemailer';
 
+export const config = {
+    api: {
+        bodyParser: {
+            sizeLimit: '15mb', // একাধিক ফাইলের জন্য সাইজ লিমিট বাড়িয়ে দেওয়া হলো
+        },
+    },
+};
+
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -18,7 +26,7 @@ export default async function handler(req, res) {
             name, email, phone, 
             landWidth, landLength, landArea, 
             stories, buildingType, budget, message,
-            fileData, fileName 
+            attachmentsList 
         } = req.body;
 
         if (!name || !email || !phone) {
@@ -33,7 +41,20 @@ export default async function handler(req, res) {
             }
         });
 
-        // ইমেইল অপশন ও অ্যাটাচমেন্ট কনফিগারেশন
+        // ক্লায়েন্ট থেকে আসা একাধিক ফাইল বা অ্যাটাচমেন্ট প্রসেস করার কোড
+        let mailAttachments = [];
+        if (attachmentsList && Array.isArray(attachmentsList)) {
+            attachmentsList.forEach(file => {
+                if (file.fileData && file.fileName) {
+                    mailAttachments.push({
+                        filename: file.fileName,
+                        content: file.fileData.split(',')[1],
+                        encoding: 'base64'
+                    });
+                }
+            });
+        }
+
         const mailOptions = {
             from: '"CDC Building Query" <joincdc@gmail.com>',
             to: process.env.GMAIL_USER,
@@ -87,11 +108,7 @@ export default async function handler(req, res) {
                     </p>
                 </div>
             `,
-            attachments: fileData && fileName ? [{
-                filename: fileName,
-                content: fileData.split(',')[1],
-                encoding: 'base64'
-            }] : []
+            attachments: mailAttachments
         };
 
         await transporter.sendMail(mailOptions);
@@ -99,6 +116,6 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error("Building Query Error:", error);
-        return res.status(500).json({ error: "Failed to send query" });
+        return res.status(500).json({ error: "Failed to send query: " + error.message });
     }
 }
