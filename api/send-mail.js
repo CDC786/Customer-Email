@@ -3,7 +3,7 @@ import nodemailer from 'nodemailer';
 export const config = {
     api: {
         bodyParser: {
-            sizeLimit: '15mb', // একাধিক ফাইলের জন্য সাইজ লিমিট একটু বাড়িয়ে দেওয়া হলো
+            sizeLimit: '20mb',
         },
     },
 };
@@ -22,10 +22,11 @@ export default async function handler(req, res) {
     }
 
     try {
-        const { clientEmail, subject, fileLink, attachmentsList } = req.body;
+        // Now receiving htmlBody directly from frontend just like the invoice API
+        const { clientEmail, subject, htmlBody, attachmentsList } = req.body;
 
-        if (!clientEmail) {
-            return res.status(400).json({ error: 'Client email is required' });
+        if (!clientEmail || !htmlBody) {
+            return res.status(400).json({ error: 'Client email and message content are required' });
         }
 
         const transporter = nodemailer.createTransport({
@@ -36,7 +37,7 @@ export default async function handler(req, res) {
             }
         });
 
-        // একাধিক অ্যাটাচমেন্ট প্রসেস করার কোড
+        // Process attachments (including auto-generated PDF)
         let mailAttachments = [];
         if (attachmentsList && Array.isArray(attachmentsList)) {
             attachmentsList.forEach(file => {
@@ -52,36 +53,11 @@ export default async function handler(req, res) {
 
         const mailOptions = {
             from: '"Civil Design & Construction LLC" <joincdc@gmail.com>',
+            replyTo: 'support@cdc-llc.net', // Client replies will go to support
             to: clientEmail,
-            subject: subject || 'Payment Successful - Your Civil Design & Construction LLC Service & Download Link',
-            html: `
-                <div style="font-family: Arial, sans-serif; padding: 25px; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px;">
-                    <h2 style="color: #0056b3; margin-top: 0;">Civil Design & Construction LLC</h2>
-                    <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-
-                    <p>Dear Valued Client,</p>
-                    <p>Thank you for your payment! We have successfully received your transaction for our engineering/digital services.</p>
-                    
-                    <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
-                        <p style="margin: 0; font-weight: bold; color: #444;">Order Summary:</p>
-                        <p style="margin: 5px 0 0 0; font-size: 14px; color: #666;">Status: <span style="color: green; font-weight: bold;">Confirmed & Paid</span></p>
-                    </div>
-
-                    <p>You can access your purchased files, design documents, or download links by clicking the button below:</p>
-                    
-                    <div style="text-align: center; margin: 30px 0;">
-                        <a href="${fileLink || 'https://www.cdc-llc.net'}" style="background-color: #0056b3; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Access Your Files / Services</a>
-                    </div>
-
-                    <p>If you have any questions or require further assistance, simply reply directly to this email or contact us at <strong>joincdc@gmail.com</strong>.</p>
-
-                    <p style="margin-top: 30px; font-size: 13px; color: #777;">
-                        Best regards,<br>
-                        <strong>Civil Design & Construction LLC</strong><br>
-                        <i>Sheridan, Wyoming</i>
-                    </p>
-                </div>
-            `,
+            bcc: process.env.GMAIL_USER, // Sends an exact copy of the mail & PDF to your admin email
+            subject: subject || 'Delivery - Civil Design & Construction LLC',
+            html: htmlBody, // Prepared beautifully from frontend
             attachments: mailAttachments
         };
 
