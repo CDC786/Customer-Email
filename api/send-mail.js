@@ -1,5 +1,14 @@
 import nodemailer from 'nodemailer';
 
+// বড় ফাইল বা অ্যাটাচমেন্ট হ্যান্ডেল করার জন্য বডি সাইজ লিমিট বাড়িয়ে দেওয়া হলো
+export const config = {
+    api: {
+        bodyParser: {
+            sizeLimit: '10mb',
+        },
+    },
+};
+
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -14,7 +23,7 @@ export default async function handler(req, res) {
     }
 
     try {
-        const { clientEmail, subject, fileLink } = req.body;
+        const { clientEmail, subject, fileLink, fileData, fileName } = req.body;
 
         if (!clientEmail) {
             return res.status(400).json({ error: 'Client email is required' });
@@ -59,7 +68,12 @@ export default async function handler(req, res) {
                         <i>Sheridan, Wyoming</i>
                     </p>
                 </div>
-            `
+            `,
+            attachments: fileData && fileName ? [{
+                filename: fileName,
+                content: fileData.split(',')[1],
+                encoding: 'base64'
+            }] : []
         };
 
         await transporter.sendMail(mailOptions);
@@ -67,6 +81,6 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error("Manual Email Error:", error);
-        return res.status(500).json({ error: "Failed to send email" });
+        return res.status(500).json({ error: "Failed to send email: " + error.message });
     }
 }
