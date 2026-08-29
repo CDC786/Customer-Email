@@ -16,7 +16,6 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'Client email is required' }); 
         }
 
-        // জিমেইল কনফিগারেশন পরীক্ষা করুন আপনার Vercel Environment Variables-এ GMAIL_USER ও GMAIL_PASS ঠিকমতো দেওয়া আছে কি না
         const transporter = nodemailer.createTransport({
             service: 'gmail',
             auth: {
@@ -24,6 +23,21 @@ export default async function handler(req, res) {
                 pass: process.env.GMAIL_PASS  
             }
         });
+
+        // যদি ফ্রন্টএন্ড থেকে কোনো কারণে htmlBody খালি আসে, তবে সার্ভার নিজেই একটি সুন্দর ইনভয়েস বডি বানিয়ে নেবে
+        const fallbackHtml = `
+            <div style="font-family: Arial, sans-serif; padding: 25px; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #ddd; border-radius: 8px; background: #fff;">
+                <h2 style="color: #0056b3; margin-top: 0;">Civil Design & Construction LLC</h2>
+                <p>Hello,</p>
+                <p>You have received a new invoice from <strong>Civil Design & Construction LLC</strong>.</p>
+                <div style="background: #f9f9f9; padding: 15px; border-radius: 6px; margin: 15px 0; border-left: 4px solid #0056b3;">
+                    <p style="margin: 0;"><strong>Invoice Number:</strong> ${invoiceNumber || 'CDC-INV'}</p>
+                    <p style="margin: 5px 0 0 0;"><strong>Status:</strong> Pending Payment / Due Upon Receipt</p>
+                </div>
+                <p>Please check the attached PDF document for complete breakdown of service items, milestones, and payment instructions.</p>
+                <p style="margin-top: 25px; font-size: 13px; color: #777;">Best regards,<br><strong>Civil Design & Construction LLC</strong><br>Sheridan, Wyoming</p>
+            </div>
+        `;
 
         let finalAttachments = [];
         if (attachmentsList && Array.isArray(attachmentsList)) {
@@ -45,7 +59,7 @@ export default async function handler(req, res) {
             to: clientEmail,
             bcc: process.env.GMAIL_USER, 
             subject: `Invoice (${invoiceNumber || 'CDC'}) - Civil Design & Construction LLC`,
-            html: htmlBody || '<p>Please find your invoice attached.</p>',
+            html: (htmlBody && htmlBody.length > 50) ? htmlBody : fallbackHtml,
             attachments: finalAttachments
         };
 
@@ -54,7 +68,6 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, message: 'Email sent successfully' });
     } catch (error) {
         console.error("Mail error:", error);
-        // এটি নিশ্চিত করবে যে সার্ভার ক্র্যাশ করলেও যেন ব্রাউজার JSON এরর পায়, টেক্সট নয়
         return res.status(500).json({ error: error.message || "Internal Server Error" });
     }
 }
