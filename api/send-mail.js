@@ -36,7 +36,7 @@ export default async function handler(req, res) {
             }
         });
 
-        // এখানে অ্যাটাচমেন্ট অ্যারে সঠিকভাবে সাজানো হয়েছে যাতে মূল টেক্সট বডি ঠিকমতো দেখায়
+        // অ্যাটাচমেন্ট অ্যারে সঠিকভাবে সাজানো হয়েছে
         let mailAttachments = [];
         if (fileData && fileName) {
             mailAttachments.push({
@@ -49,7 +49,11 @@ export default async function handler(req, res) {
         const mailOptions = {
             from: '"Civil Design & Construction LLC" <joincdc@gmail.com>',
             to: clientEmail,
+            // জিমেইলে একই সাবজেক্টে থ্রেডিং বা মার্জ হওয়া এড়াতে ইউনিক আইডি যুক্ত করা হলো
             subject: subject || 'Payment Successful - Your Civil Design & Construction LLC Service & Download Link',
+            headers: {
+                'X-Entity-Ref-ID': new Date().getTime().toString()
+            },
             html: `
                 <div style="font-family: Arial, sans-serif; padding: 25px; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px;">
                     <h2 style="color: #0056b3; margin-top: 0;">Civil Design & Construction LLC</h2>
