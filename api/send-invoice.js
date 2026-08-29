@@ -22,7 +22,12 @@ export default async function handler(req, res) {
     }
 
     try {
-        const { clientName, clientEmail, clientPhone, currency, invoiceNumber, paymentTerms, paymentLink, items, attachmentsList } = req.body;
+        // Extracting all data including editable bank details
+        const { 
+            clientName, clientEmail, clientPhone, currency, invoiceNumber, paymentTerms, paymentLink, 
+            items, attachmentsList, 
+            bankHolder, bankAccNo, bankName, bankCountry, bankAch, bankWire, bankAddress, bankAccType 
+        } = req.body;
 
         if (!clientEmail || !clientName) {
             return res.status(400).json({ error: 'Client name and email are required' });
@@ -36,7 +41,7 @@ export default async function handler(req, res) {
             }
         });
 
-        // হিসাব এবং আইটেম টেবিল তৈরি (Description -> Quantity -> Unit -> Rate -> Total Amount)
+        // হিসাব এবং আইটেম টেবিল তৈরি
         let totalAmount = 0;
         let itemsHtml = '';
         const curr = currency || '$';
@@ -74,6 +79,30 @@ export default async function handler(req, res) {
         }
 
         const currentDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        
+        // পেমেন্ট লিংক অপশনাল করা হয়েছে, থাকলে বাটন দেখাবে
+        const paymentButtonHtml = paymentLink ? `
+            <div style="text-align: center; margin: 25px 0;">
+                <a href="${paymentLink}" style="background-color: #27ae60; color: white; padding: 14px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px; display: inline-block; box-shadow: 0 3px 6px rgba(0,0,0,0.16);">Pay Securely Online</a>
+            </div>
+        ` : '';
+
+        // Dynamic Bank Details HTML
+        const bankDetailsHtml = bankAccNo ? `
+            <div style="background-color: #f4f6f9; padding: 20px; border-radius: 6px; border-left: 4px solid #0056b3; font-size: 13.5px; color: #333; margin-bottom: 20px;">
+                <h4 style="margin: 0 0 10px 0; color: #0056b3; font-size: 15px;">Bank Transfer / Wire Details:</h4>
+                <table style="width: 100%; border-collapse: collapse;">
+                    ${bankHolder ? `<tr><td style="padding: 3px 0; width: 140px;"><strong>Account Holder:</strong></td><td>${bankHolder}</td></tr>` : ''}
+                    ${bankAccNo ? `<tr><td style="padding: 3px 0;"><strong>Account Number:</strong></td><td>${bankAccNo}</td></tr>` : ''}
+                    ${bankName ? `<tr><td style="padding: 3px 0;"><strong>Bank Name:</strong></td><td>${bankName}</td></tr>` : ''}
+                    ${bankAccType ? `<tr><td style="padding: 3px 0;"><strong>Account Type:</strong></td><td>${bankAccType}</td></tr>` : ''}
+                    ${bankCountry ? `<tr><td style="padding: 3px 0;"><strong>Country Code:</strong></td><td>${bankCountry}</td></tr>` : ''}
+                    ${bankAch ? `<tr><td style="padding: 3px 0;"><strong>ACH Routing:</strong></td><td>${bankAch}</td></tr>` : ''}
+                    ${bankWire ? `<tr><td style="padding: 3px 0;"><strong>Wire Routing:</strong></td><td>${bankWire}</td></tr>` : ''}
+                    ${bankAddress ? `<tr><td style="padding: 3px 0; vertical-align: top;"><strong>Bank Address:</strong></td><td>${bankAddress}</td></tr>` : ''}
+                </table>
+            </div>
+        ` : '';
 
         const mailOptions = {
             from: '"Civil Design & Construction LLC" <joincdc@gmail.com>',
@@ -81,6 +110,7 @@ export default async function handler(req, res) {
             subject: `Invoice #${invoiceNumber} from Civil Design & Construction LLC`,
             html: `
                 <div style="font-family: Arial, sans-serif; padding: 30px; color: #333; max-width: 750px; margin: 0 auto; border: 1px solid #dcdcdc; border-radius: 8px; background: #fff;">
+                    
                     <!-- Header -->
                     <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
                         <tr>
@@ -129,21 +159,22 @@ export default async function handler(req, res) {
                     </table>
 
                     <!-- Grand Total Due -->
-                    <div style="text-align: right; margin-bottom: 30px;">
-                        <div style="font-size: 18px; font-weight: bold; color: #222; background: #f1f1f1; display: inline-block; padding: 12px 25px; border-radius: 5px;">
+                    <div style="text-align: right; margin-bottom: 25px;">
+                        <div style="font-size: 18px; font-weight: bold; color: #222; background: #f1f1f1; display: inline-block; padding: 12px 25px; border-radius: 5px; border: 1px solid #ddd;">
                             Grand Total Due: <span style="color: #0056b3;">${curr}${totalAmount.toFixed(2)}</span>
                         </div>
                     </div>
 
-                    <!-- Payment Button -->
-                    <div style="text-align: center; margin: 30px 0;">
-                        <a href="${paymentLink || 'https://www.cdc-llc.net'}" style="background-color: #27ae60; color: white; padding: 14px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px; display: inline-block;">Pay Securely Online</a>
-                    </div>
+                    <!-- Payment Button (Optional) -->
+                    ${paymentButtonHtml}
+
+                    <!-- Dynamic Bank Details -->
+                    ${bankDetailsHtml}
 
                     <div style="background-color: #fcf8e3; padding: 15px; border-radius: 6px; border: 1px solid #faebcc; font-size: 13px; color: #8a6d3b; margin-bottom: 20px;">
                         <strong>Payment Instructions & Important Note:</strong><br>
-                        1. Please include your Invoice Number (${invoiceNumber}) when making the payment.<br>
-                        2. Complete your payment using the secure payment button above.
+                        1. Please include your Invoice Number (${invoiceNumber}) in the payment reference.<br>
+                        2. You can pay using the secure button above or via bank wire/transfer using the details provided.
                     </div>
 
                     <div style="font-size: 12px; color: #666; border-top: 1px solid #eee; padding-top: 15px;">
