@@ -3,7 +3,7 @@ import nodemailer from 'nodemailer';
 export const config = {
     api: {
         bodyParser: {
-            sizeLimit: '10mb',
+            sizeLimit: '15mb', // একাধিক ফাইলের জন্য সাইজ লিমিট একটু বাড়িয়ে দেওয়া হলো
         },
     },
 };
@@ -22,7 +22,7 @@ export default async function handler(req, res) {
     }
 
     try {
-        const { clientEmail, subject, fileLink, fileData, fileName } = req.body;
+        const { clientEmail, subject, fileLink, attachmentsList } = req.body;
 
         if (!clientEmail) {
             return res.status(400).json({ error: 'Client email is required' });
@@ -36,13 +36,17 @@ export default async function handler(req, res) {
             }
         });
 
-        // এখানে অ্যাটাচমেন্ট অ্যারে সঠিকভাবে সাজানো হয়েছে যাতে মূল টেক্সট বডি ঠিকমতো দেখায়
+        // একাধিক অ্যাটাচমেন্ট প্রসেস করার কোড
         let mailAttachments = [];
-        if (fileData && fileName) {
-            mailAttachments.push({
-                filename: fileName,
-                content: fileData.split(',')[1],
-                encoding: 'base64'
+        if (attachmentsList && Array.isArray(attachmentsList)) {
+            attachmentsList.forEach(file => {
+                if (file.fileData && file.fileName) {
+                    mailAttachments.push({
+                        filename: file.fileName,
+                        content: file.fileData.split(',')[1],
+                        encoding: 'base64'
+                    });
+                }
             });
         }
 
