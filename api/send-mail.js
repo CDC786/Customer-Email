@@ -1,6 +1,5 @@
 import nodemailer from 'nodemailer';
 
-// বড় ফাইল বা অ্যাটাচমেন্ট হ্যান্ডেল করার জন্য বডি সাইজ লিমিট বাড়িয়ে দেওয়া হলো
 export const config = {
     api: {
         bodyParser: {
@@ -37,6 +36,16 @@ export default async function handler(req, res) {
             }
         });
 
+        // এখানে অ্যাটাচমেন্ট অ্যারে সঠিকভাবে সাজানো হয়েছে যাতে মূল টেক্সট বডি ঠিকমতো দেখায়
+        let mailAttachments = [];
+        if (fileData && fileName) {
+            mailAttachments.push({
+                filename: fileName,
+                content: fileData.split(',')[1],
+                encoding: 'base64'
+            });
+        }
+
         const mailOptions = {
             from: '"Civil Design & Construction LLC" <joincdc@gmail.com>',
             to: clientEmail,
@@ -69,11 +78,7 @@ export default async function handler(req, res) {
                     </p>
                 </div>
             `,
-            attachments: fileData && fileName ? [{
-                filename: fileName,
-                content: fileData.split(',')[1],
-                encoding: 'base64'
-            }] : []
+            attachments: mailAttachments
         };
 
         await transporter.sendMail(mailOptions);
