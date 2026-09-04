@@ -21,7 +21,7 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
-    // অত্যন্ত গুরুত্বপূর্ণ: জোহো থেকে রিকোয়েস্ট আসছে কি না তা ট্র্যাক করার জন্য হিট লগ
+    // জোহো থেকে রিকোয়েস্ট আসার হিট লগ
     console.log("🔥 AUTO-REPLY API HIT", {
         method: req.method,
         time: new Date().toISOString(),
@@ -49,22 +49,22 @@ export default async function handler(req, res) {
         
         switch (department) {
             case 'payments':
-                emailUser = process.env.PAYMENT_EMAIL_USER;
-                emailPass = process.env.PAYMENT_EMAIL_PASS;
-                emailSender = 'payments@cdc-llc.net';
+                emailUser = process.env.PAYMENT_EMAIL_USER || process.env.GMAIL_USER;
+                emailPass = process.env.PAYMENT_EMAIL_PASS || process.env.GMAIL_PASS;
+                emailSender = process.env.GMAIL_USER || 'payments@cdc-llc.net';
                 trackingPrefix = 'PAY';
                 break;
             case 'support':
-                emailUser = process.env.SUPPORT_EMAIL_USER;
-                emailPass = process.env.SUPPORT_EMAIL_PASS;
-                emailSender = 'support@cdc-llc.net';
+                emailUser = process.env.SUPPORT_EMAIL_USER || process.env.GMAIL_USER;
+                emailPass = process.env.SUPPORT_EMAIL_PASS || process.env.GMAIL_PASS;
+                emailSender = process.env.GMAIL_USER || 'support@cdc-llc.net';
                 trackingPrefix = 'SUP';
                 break;
             case 'info':
             default:
                 emailUser = process.env.INFO_EMAIL_USER || process.env.GMAIL_USER;
                 emailPass = process.env.INFO_EMAIL_PASS || process.env.GMAIL_PASS;
-                emailSender = emailUser && emailUser.includes('@gmail.com') ? emailUser : 'info@cdc-llc.net';
+                emailSender = process.env.GMAIL_USER || 'info@cdc-llc.net';
                 trackingPrefix = 'INQ';
                 break;
         }
@@ -73,22 +73,12 @@ export default async function handler(req, res) {
         const randomNum = Math.floor(100000 + Math.random() * 900000);
         const trackingCode = `CDC-${trackingPrefix}-${randomNum}`;
 
-        const mailProvider = process.env.MAIL_PROVIDER || 'zoho'; 
-        
-        let smtpConfig = {};
-        if (mailProvider === 'gmail') {
-            smtpConfig = {
-                host: 'smtp.gmail.com',
-                port: 465,
-                secure: true
-            };
-        } else {
-            smtpConfig = {
-                host: 'smtp.zoho.com',
-                port: 465,
-                secure: true
-            };
-        }
+        // সরাসরি জিমেইল SMTP ব্যবহার করার কনফিগারেশন
+        const smtpConfig = {
+            host: 'smtp.gmail.com',
+            port: 465,
+            secure: true
+        };
 
         const transporter = nodemailer.createTransport({
             ...smtpConfig,
