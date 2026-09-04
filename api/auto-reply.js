@@ -21,10 +21,15 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
+    // অত্যন্ত গুরুত্বপূর্ণ: জোহো থেকে রিকোয়েস্ট আসছে কি না তা ট্র্যাক করার জন্য হিট লগ
+    console.log("🔥 AUTO-REPLY API HIT", {
+        method: req.method,
+        time: new Date().toISOString(),
+        body: req.body
+    });
+
     try {
-        console.log("Incoming Request Body:", JSON.stringify(req.body));
-        
-        const { clientEmail, department, senderName } = req.body;
+        const { clientEmail, department, senderName } = req.body || {};
 
         if (!clientEmail) {
             console.error("Error: Client email is missing in request body.");
@@ -59,8 +64,7 @@ export default async function handler(req, res) {
             default:
                 emailUser = process.env.INFO_EMAIL_USER || process.env.GMAIL_USER;
                 emailPass = process.env.INFO_EMAIL_PASS || process.env.GMAIL_PASS;
-                // যদি জিমেইল ব্যবহার করেন তবে joincdc@gmail.com দেখাবে, জোহো হলে info@cdc-llc.net দেখাবে
-                emailSender = emailUser.includes('@gmail.com') ? emailUser : 'info@cdc-llc.net';
+                emailSender = emailUser && emailUser.includes('@gmail.com') ? emailUser : 'info@cdc-llc.net';
                 trackingPrefix = 'INQ';
                 break;
         }
@@ -69,10 +73,6 @@ export default async function handler(req, res) {
         const randomNum = Math.floor(100000 + Math.random() * 900000);
         const trackingCode = `CDC-${trackingPrefix}-${randomNum}`;
 
-        // ==========================================
-        // এখানে শুধু ঠিক করে দিন আপনি কোনটা ব্যবহার করবেন:
-        // 'zoho' অথবা 'gmail'
-        // ==========================================
         const mailProvider = process.env.MAIL_PROVIDER || 'zoho'; 
         
         let smtpConfig = {};
