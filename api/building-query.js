@@ -28,11 +28,14 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'Client email and details are required' });
         }
 
+        // জোহো SMTP কনফিগারেশন (info@cdc-llc.net এর মাধ্যমে মেইল পাঠানোর জন্য)
         const transporter = nodemailer.createTransport({
-            service: 'gmail',
+            host: 'smtp.zoho.com',
+            port: 465,
+            secure: true, // 465 পোর্টের জন্য true
             auth: {
-                user: process.env.GMAIL_USER, 
-                pass: process.env.GMAIL_PASS  
+                user: process.env.INFO_EMAIL_USER, // info@cdc-llc.net
+                pass: process.env.INFO_EMAIL_PASS  // জোহো থেকে জেনারেট করা info মেইলের App Password
             }
         });
 
@@ -51,12 +54,12 @@ export default async function handler(req, res) {
         }
 
         const mailOptions = {
-            from: '"Civil Design & Construction LLC" <joincdc@gmail.com>',
+            from: '"Civil Design & Construction LLC" <info@cdc-llc.net>',
             replyTo: 'support@cdc-llc.net',
-            to: clientEmail, // Client gets the receipt
-            bcc: process.env.GMAIL_USER, // Admin (You) gets the exact copy with all attachments
+            to: clientEmail, // Client gets the inquiry confirmation
+            // bcc বা অন্য কোনো অতিরিক্ত কপি বাদ দেওয়া হয়েছে (Sent বক্সে পাওয়া যাবে)
             subject: `Project Inquiry Received - Civil Design & Construction LLC`,
-            html: htmlBody, // Beautifully formatted receipt from frontend
+            html: htmlBody, // Beautifully formatted summary from frontend
             attachments: mailAttachments
         };
 
