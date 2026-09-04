@@ -28,11 +28,14 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'Missing client email or challan data' });
         }
 
+        // জোহো SMTP কনফিগারেশন (support@cdc-llc.net এর মাধ্যমে চালান পাঠানোর জন্য)
         const transporter = nodemailer.createTransport({
-            service: 'gmail',
+            host: 'smtp.zoho.com',
+            port: 465,
+            secure: true, // 465 পোর্টের জন্য true
             auth: {
-                user: process.env.GMAIL_USER, 
-                pass: process.env.GMAIL_PASS  
+                user: process.env.SUPPORT_EMAIL_USER, // support@cdc-llc.net
+                pass: process.env.SUPPORT_EMAIL_PASS  // জোহো থেকে জেনারেট করা সাপোর্ট মেইলের অ্যাপ পাসওয়ার্ড
             }
         });
 
@@ -51,10 +54,10 @@ export default async function handler(req, res) {
         }
 
         const mailOptions = {
-            from: '"Civil Design & Construction LLC" <joincdc@gmail.com>', // Main authenticated sender
+            from: '"Civil Design & Construction LLC" <support@cdc-llc.net>',
             replyTo: 'support@cdc-llc.net', // Replies will go here
             to: clientEmail,
-            bcc: process.env.GMAIL_USER, // Sends an exact copy of the delivery challan to your admin email
+            // কোনো bcc রাখা হয়নি, তাই কোনো কপি কারও কাছে যাবে না—শুধু ক্লায়েন্ট পাবে
             subject: `Delivery Challan #${invoiceNumber} from Civil Design & Construction LLC`,
             html: htmlBody,
             attachments: mailAttachments // Contains user files + the Auto-generated PDF Challan
