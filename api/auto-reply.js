@@ -22,20 +22,26 @@ export default async function handler(req, res) {
     }
 
     try {
+        console.log("Incoming Request Body:", JSON.stringify(req.body));
+        
         const { clientEmail, department, senderName } = req.body;
 
         if (!clientEmail) {
+            console.error("Error: Client email is missing in request body.");
             return res.status(400).json({ error: 'Client email is required' });
         }
 
-        // জোহো থেকে অনেক সময় Name <email@domain.com> ফরম্যাটে ইমেল আসে, তাই সঠিক ইমেলটি আলাদা করে নেওয়া
+        // জোহো থেকে অনেক সময় Name <email@domain.com> ফরম্যাটে ইমেল আসে, তাই সঠিক ইমেলটি আলাদা করে নেওয়া
         let extractedEmail = clientEmail;
         const emailMatch = clientEmail.match(/<(.+?)>/);
         if (emailMatch && emailMatch[1]) {
             extractedEmail = emailMatch[1];
         }
 
-        // ডিপার্টমেন্ট অনুযায়ী নির্দিষ্ট SMTP এবং প্রিফিক্স সেট করা
+        console.log("Extracted Client Email:", extractedEmail);
+        console.log("Target Department:", department);
+
+        // ডিপার্টমেন্ট অনুযায়ী নির্দিষ্ট SMTP এবং প্রিফিক্স সেট করা
         let emailUser, emailPass, emailSender, trackingPrefix;
         
         switch (department) {
@@ -118,16 +124,18 @@ export default async function handler(req, res) {
         const mailOptions = {
             from: `"Civil Design & Construction LLC" <${emailSender}>`,
             replyTo: emailSender,
-            to: extractedEmail, // ফিল্টার করা সঠিক ইমেল অ্যাড্রেস
+            to: extractedEmail,
             subject: `[Tracking ID: ${trackingCode}] Message Received - Civil Design & Construction LLC`,
             html: htmlBody
         };
 
-        await transporter.sendMail(mailOptions);
+        const info = await transporter.sendMail(mailOptions);
+        console.log("Email Sent Successfully. MessageId:", info.messageId);
+
         return res.status(200).json({ success: true, trackingCode, message: 'Auto-reply sent successfully!' });
 
     } catch (error) {
-        console.error("Auto-Reply Error:", error);
+        console.error("Auto-Reply Critical Error:", error);
         return res.status(500).json({ error: "Failed to send auto-reply: " + error.message });
     }
 }
