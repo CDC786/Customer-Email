@@ -40,28 +40,27 @@ export default async function handler(req, res) {
         console.log("Extracted Client Email:", extractedEmail);
         console.log("Target Department:", department);
 
-        // ডিপার্টমেন্ট অনুযায়ী নির্দিষ্ট SMTP এবং প্রিফিক্স সেট করা
         let emailUser, emailPass, emailSender, trackingPrefix;
         
         switch (department) {
             case 'payments':
                 emailUser = process.env.PAYMENT_EMAIL_USER;
                 emailPass = process.env.PAYMENT_EMAIL_PASS;
-                emailSender = process.env.PAYMENT_EMAIL_USER || 'payments@cdc-llc.net';
+                emailSender = 'payments@cdc-llc.net';
                 trackingPrefix = 'PAY';
                 break;
             case 'support':
                 emailUser = process.env.SUPPORT_EMAIL_USER;
                 emailPass = process.env.SUPPORT_EMAIL_PASS;
-                emailSender = process.env.SUPPORT_EMAIL_USER || 'support@cdc-llc.net';
+                emailSender = 'support@cdc-llc.net';
                 trackingPrefix = 'SUP';
                 break;
             case 'info':
             default:
-                // যদি আলাদা info ভেরিয়েবল না থাকে, তবে গ্যালারির মূল GMAIL_USER ব্যবহার করবে
                 emailUser = process.env.INFO_EMAIL_USER || process.env.GMAIL_USER;
                 emailPass = process.env.INFO_EMAIL_PASS || process.env.GMAIL_PASS;
-                emailSender = emailUser;
+                // যদি জিমেইল ব্যবহার করেন তবে joincdc@gmail.com দেখাবে, জোহো হলে info@cdc-llc.net দেখাবে
+                emailSender = emailUser.includes('@gmail.com') ? emailUser : 'info@cdc-llc.net';
                 trackingPrefix = 'INQ';
                 break;
         }
@@ -70,11 +69,29 @@ export default async function handler(req, res) {
         const randomNum = Math.floor(100000 + Math.random() * 900000);
         const trackingCode = `CDC-${trackingPrefix}-${randomNum}`;
 
-        // জিমেইল এস এম টি পি (Gmail SMTP) কনফিগারেশন
+        // ==========================================
+        // এখানে শুধু ঠিক করে দিন আপনি কোনটা ব্যবহার করবেন:
+        // 'zoho' অথবা 'gmail'
+        // ==========================================
+        const mailProvider = process.env.MAIL_PROVIDER || 'zoho'; 
+        
+        let smtpConfig = {};
+        if (mailProvider === 'gmail') {
+            smtpConfig = {
+                host: 'smtp.gmail.com',
+                port: 465,
+                secure: true
+            };
+        } else {
+            smtpConfig = {
+                host: 'smtp.zoho.com',
+                port: 465,
+                secure: true
+            };
+        }
+
         const transporter = nodemailer.createTransport({
-            host: 'smtp.gmail.com',
-            port: 465,
-            secure: true,
+            ...smtpConfig,
             auth: {
                 user: emailUser,
                 pass: emailPass
