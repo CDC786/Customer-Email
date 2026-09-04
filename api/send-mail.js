@@ -22,22 +22,25 @@ export default async function handler(req, res) {
     }
 
     try {
-        // Now receiving htmlBody directly from frontend just like the invoice API
+        // ফ্রন্টএন্ড থেকে htmlBody, subject এবং attachments রিসিভ করা
         const { clientEmail, subject, htmlBody, attachmentsList } = req.body;
 
         if (!clientEmail || !htmlBody) {
             return res.status(400).json({ error: 'Client email and message content are required' });
         }
 
+        // জোহো SMTP কনফিগারেশন (payments@cdc-llc.net এর জন্য)
         const transporter = nodemailer.createTransport({
-            service: 'gmail',
+            host: 'smtp.zoho.com',
+            port: 465,
+            secure: true, // 465 পোর্টের জন্য true
             auth: {
-                user: process.env.GMAIL_USER, 
-                pass: process.env.GMAIL_PASS  
+                user: process.env.PAYMENT_EMAIL_USER, // payments@cdc-llc.net
+                pass: process.env.PAYMENT_EMAIL_PASS  // জোহো থেকে জেনারেট করা পেমেন্ট মেইলের অ্যাপ পাসওয়ার্ড
             }
         });
 
-        // Process attachments (including auto-generated PDF)
+        // Process attachments (including auto-generated PDF receipt)
         let mailAttachments = [];
         if (attachmentsList && Array.isArray(attachmentsList)) {
             attachmentsList.forEach(file => {
@@ -52,20 +55,20 @@ export default async function handler(req, res) {
         }
 
         const mailOptions = {
-            from: '"Civil Design & Construction LLC" <joincdc@gmail.com>',
+            from: '"Civil Design & Construction LLC" <payments@cdc-llc.net>',
             replyTo: 'support@cdc-llc.net', // Client replies will go to support
             to: clientEmail,
-            bcc: process.env.GMAIL_USER, // Sends an exact copy of the mail & PDF to your admin email
-            subject: subject || 'Delivery - Civil Design & Construction LLC',
+            // কোনো bcc রাখা হয়নি, তাই কোনো কপি কারও কাছে যাবে না—শুধু ক্লায়েন্ট পাবে
+            subject: subject || 'Payment Receipt - Civil Design & Construction LLC',
             html: htmlBody, // Prepared beautifully from frontend
             attachments: mailAttachments
         };
 
         await transporter.sendMail(mailOptions);
-        return res.status(200).json({ success: true, message: 'Email sent successfully!' });
+        return res.status(200).json({ success: true, message: 'Payment email and receipt sent successfully!' });
 
     } catch (error) {
-        console.error("Manual Email Error:", error);
-        return res.status(500).json({ error: "Failed to send email: " + error.message });
+        console.error("Payment Email Error:", error);
+        return res.status(500).json({ error: "Failed to send payment email: " + error.message });
     }
 }
