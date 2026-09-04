@@ -28,6 +28,13 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'Client email is required' });
         }
 
+        // জোহো থেকে অনেক সময় Name <email@domain.com> ফরম্যাটে ইমেল আসে, তাই সঠিক ইমেলটি আলাদা করে নেওয়া
+        let extractedEmail = clientEmail;
+        const emailMatch = clientEmail.match(/<(.+?)>/);
+        if (emailMatch && emailMatch[1]) {
+            extractedEmail = emailMatch[1];
+        }
+
         // ডিপার্টমেন্ট অনুযায়ী নির্দিষ্ট SMTP এবং প্রিফিক্স সেট করা
         let emailUser, emailPass, emailSender, trackingPrefix;
         
@@ -111,7 +118,7 @@ export default async function handler(req, res) {
         const mailOptions = {
             from: `"Civil Design & Construction LLC" <${emailSender}>`,
             replyTo: emailSender,
-            to: clientEmail,
+            to: extractedEmail, // ফিল্টার করা সঠিক ইমেল অ্যাড্রেস
             subject: `[Tracking ID: ${trackingCode}] Message Received - Civil Design & Construction LLC`,
             html: htmlBody
         };
