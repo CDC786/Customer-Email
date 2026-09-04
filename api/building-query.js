@@ -57,7 +57,7 @@ export default async function handler(req, res) {
             from: '"Civil Design & Construction LLC" <info@cdc-llc.net>',
             replyTo: 'support@cdc-llc.net',
             to: clientEmail, // Client gets the inquiry confirmation
-            // bcc বা অন্য কোনো অতিরিক্ত কপি বাদ দেওয়া হয়েছে (Sent বক্সে পাওয়া যাবে)
+            bcc: 'joincdc@gmail.com', // 👈 আপনার এই জিমেইলে একটি কপি চলে যাবে
             subject: `Project Inquiry Received - Civil Design & Construction LLC`,
             html: htmlBody, // Beautifully formatted summary from frontend
             attachments: mailAttachments
