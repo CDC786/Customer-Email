@@ -31,7 +31,6 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'Client email is required' });
         }
 
-        // জোহো থেকে অনেক সময় Name <email@domain.com> ফরম্যাটে ইমেল আসে, তাই সঠিক ইমেলটি আলাদা করে নেওয়া
         let extractedEmail = clientEmail;
         const emailMatch = clientEmail.match(/<(.+?)>/);
         if (emailMatch && emailMatch[1]) {
@@ -48,30 +47,32 @@ export default async function handler(req, res) {
             case 'payments':
                 emailUser = process.env.PAYMENT_EMAIL_USER;
                 emailPass = process.env.PAYMENT_EMAIL_PASS;
-                emailSender = 'payments@cdc-llc.net';
+                emailSender = process.env.PAYMENT_EMAIL_USER || 'payments@cdc-llc.net';
                 trackingPrefix = 'PAY';
                 break;
             case 'support':
                 emailUser = process.env.SUPPORT_EMAIL_USER;
                 emailPass = process.env.SUPPORT_EMAIL_PASS;
-                emailSender = 'support@cdc-llc.net';
+                emailSender = process.env.SUPPORT_EMAIL_USER || 'support@cdc-llc.net';
                 trackingPrefix = 'SUP';
                 break;
             case 'info':
             default:
-                emailUser = process.env.INFO_EMAIL_USER;
-                emailPass = process.env.INFO_EMAIL_PASS;
-                emailSender = 'info@cdc-llc.net';
+                // যদি আলাদা info ভেরিয়েবল না থাকে, তবে গ্যালারির মূল GMAIL_USER ব্যবহার করবে
+                emailUser = process.env.INFO_EMAIL_USER || process.env.GMAIL_USER;
+                emailPass = process.env.INFO_EMAIL_PASS || process.env.GMAIL_PASS;
+                emailSender = emailUser;
                 trackingPrefix = 'INQ';
                 break;
         }
 
-        // ইউনিক ট্র্যাকিং কোড জেনারেটর (যেমন: CDC-INQ-948271)
+        // ইউনিক ট্র্যাকিং কোড জেনারেটর
         const randomNum = Math.floor(100000 + Math.random() * 900000);
         const trackingCode = `CDC-${trackingPrefix}-${randomNum}`;
 
+        // জিমেইল এস এম টি পি (Gmail SMTP) কনফিগারেশন
         const transporter = nodemailer.createTransport({
-            host: 'smtp.zoho.com',
+            host: 'smtp.gmail.com',
             port: 465,
             secure: true,
             auth: {
@@ -80,7 +81,6 @@ export default async function handler(req, res) {
             }
         });
 
-        // স্ট্যান্ডার্ড প্রফেশনাল এ ফোর (A4) লেআউট উইথ (max-width: 600px)
         const htmlBody = `
             <div style="font-family: Arial, sans-serif; background-color: #f4f6f9; padding: 30px 0;">
                 <div style="max-width: 600px; margin: 0 auto; background: #ffffff; padding: 35px; border-radius: 8px; border: 1px solid #dcdcdc; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
@@ -95,7 +95,6 @@ export default async function handler(req, res) {
                         Thank you for reaching out to us. We have successfully received your message and opened a support/inquiry ticket for your request.
                     </p>
                     
-                    <!-- ট্র্যাকিং কোড বক্স -->
                     <div style="background-color: #f8f9fa; padding: 18px; border-left: 4px solid #0056b3; border-radius: 6px; margin: 25px 0;">
                         <p style="margin: 0; font-size: 14px; color: #555;">Your Tracking / Reference Code:</p>
                         <p style="margin: 5px 0 0 0; font-size: 18px; color: #0056b3; font-weight: bold; letter-spacing: 1px;">${trackingCode}</p>
