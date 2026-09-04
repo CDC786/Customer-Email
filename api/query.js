@@ -1,7 +1,7 @@
 import nodemailer from 'nodemailer';
 
 export default async function handler(req, res) {
-    // CORS হেডার যুক্ত করা, যাতে যেকোনো ডোমেন থেকে ফর্ম সাবমিট করা যায়
+    // CORS হেডার যুক্ত করা, যাতে যেকোনো ডোমেন থেকে ফর্ম সাবমিট করা যায়
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -21,20 +21,23 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'Please fill in all required fields' });
         }
 
-        // জিমেইল কনফিগারেশন
+        // জোহো SMTP কনফিগারেশন (info@cdc-llc.net এর মাধ্যমে মেইল পাঠানোর জন্য)
         const transporter = nodemailer.createTransport({
-            service: 'gmail',
+            host: 'smtp.zoho.com',
+            port: 465,
+            secure: true, // 465 পোর্টের জন্য true
             auth: {
-                user: process.env.GMAIL_USER, 
-                pass: process.env.GMAIL_PASS  
+                user: process.env.INFO_EMAIL_USER, // info@cdc-llc.net
+                pass: process.env.INFO_EMAIL_PASS  // জোহো থেকে জেনারেট করা info মেইলের App Password
             }
         });
 
-        // আপনার জিমেইলে যে ফরম্যাটে মেসেজ আসবে
+        // মেইল অপশনস (info@cdc-llc.net থেকে নোটিফিকেশন যাবে এবং joincdc@gmail.com এ একটি BCC কপি যাবে)
         const mailOptions = {
-            from: '"CDC Website Query" <joincdc@gmail.com>',
-            to: process.env.GMAIL_USER, // আপনার নিজের জিমেইলেই নোটিফিকেশন আসবে
-            replyTo: email, // ক্লায়েন্টের ইমেইল, যাতে ডাইরেক্ট রিপ্লাই দিতে পারেন
+            from: '"CDC Website Query" <info@cdc-llc.net>',
+            to: process.env.INFO_EMAIL_USER, // info@cdc-llc.net ইনবক্সে মূল নোটিফিকেশন আসবে
+            bcc: 'joincdc@gmail.com', // আপনার পার্সোনাল জিমেইলে একটি কপি যাবে
+            replyTo: email, // ক্লায়েন্টের ইমেইল, যাতে ডাইরেক্ট রিপ্লাই দিতে পারেন
             subject: `New Quick Query from ${name}`,
             html: `
                 <div style="font-family: Arial, sans-serif; padding: 25px; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px;">
@@ -51,7 +54,7 @@ export default async function handler(req, res) {
                     </div>
 
                     <p style="margin-top: 30px; font-size: 13px; color: #777;">
-                        Civil Design & Construction LLC - Customer Query System
+                        Civil Design & Construction LLC - Customer Query System | Web: https://www.cdc-llc.net
                     </p>
                 </div>
             `
@@ -62,6 +65,6 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error("Query Error:", error);
-        return res.status(500).json({ error: "Failed to send query" });
-    }
+        return res.status(500).json({ error: "Failed to send query: " + error.message });
+    } 
 }
