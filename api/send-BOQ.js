@@ -30,11 +30,14 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'Client email and message content are required' });
         }
 
+        // জোহো SMTP কনফিগারেশন (info@cdc-llc.net এর মাধ্যমে BOQ প্রপোজাল পাঠানোর জন্য)
         const transporter = nodemailer.createTransport({
-            service: 'gmail',
+            host: 'smtp.zoho.com',
+            port: 465,
+            secure: true, // 465 পোর্টের জন্য true
             auth: {
-                user: process.env.GMAIL_USER, 
-                pass: process.env.GMAIL_PASS  
+                user: process.env.INFO_EMAIL_USER, // info@cdc-llc.net
+                pass: process.env.INFO_EMAIL_PASS  // জোহো থেকে জেনারেট করা info মেইলের App Password
             }
         });
 
@@ -54,10 +57,10 @@ export default async function handler(req, res) {
 
         // Email configurations
         const mailOptions = {
-            from: '"Civil Design & Construction LLC" <joincdc@gmail.com>',
+            from: '"Civil Design & Construction LLC" <info@cdc-llc.net>',
             replyTo: 'support@cdc-llc.net', 
             to: clientEmail,
-            bcc: process.env.GMAIL_USER, // Sends a copy to your admin email
+            // কোনো bcc রাখা হয়নি, তাই কোনো কপি কারও কাছে যাবে না—শুধু ক্লায়েন্ট পাবে
             subject: `Financial Proposal & BOQ - ${projectName || 'Civil Design & Construction LLC'}`,
             html: htmlBody, // The beautifully formatted HTML sent from the frontend
             attachments: mailAttachments
