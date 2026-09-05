@@ -21,22 +21,35 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
+    console.log("🔥 BOQ API HIT", {
+        method: req.method,
+        time: new Date().toISOString(),
+        body: req.body
+    });
+
     try {
-        const { clientEmail, projectName, proposalId, htmlBody, attachmentsList } = req.body;
+        const { clientEmail, projectName, proposalId, htmlBody, attachmentsList } = req.body || {};
 
         if (!clientEmail || !htmlBody) {
-            return res.status(400).json({ error: 'Client email and details are required' });
+            console.error("Error: Client email or htmlBody is missing.");
+            return res.status(400).json({ error: 'Client email and htmlBody are required' });
         }
 
-        // 🧠 সার্ভিস ডিপার্টমেন্টের কনফিগারেশন
+        let extractedEmail = clientEmail;
+        const emailMatch = clientEmail.match(/<(.+?)>/);
+        if (emailMatch && emailMatch[1]) {
+            extractedEmail = emailMatch[1];
+        }
+
+        // 🧠 সার্ভিস ডিপার্টমেন্ট কনফিগারেশন (ক্লায়েন্ট রিপ্লাই দিলে service@cdc-llc.net এ যাবে)
         const emailSender = 'service@cdc-llc.net';
         const trackingPrefix = 'SRV';
 
-        // 🎯 ট্র্যাকিং কোড জেনারেট বা রিসিভ করা
+        // 🎯 ট্র্যাকিং কোড নিশ্চিত করা
         const randomNum = Math.floor(100000 + Math.random() * 900000);
         const trackingCode = proposalId || `CDC-${trackingPrefix}-${randomNum}`;
 
-        // 🔍 সাবজেক্ট লাইনে ট্র্যাকিং কোড বসানোর পারফেক্ট ফরম্যাট
+        // 🔍 সাবজেক্ট লাইনে ট্র্যাকিং কোড বসানোর ফিক্সড ফরম্যাট: [Tracking ID: ...] Financial Proposal & BOQ - Project Name
         const projNameStr = projectName ? ` - ${projectName}` : '';
         const finalSubject = `[Tracking ID: ${trackingCode}] Financial Proposal & BOQ${projNameStr}`;
 
@@ -68,8 +81,8 @@ export default async function handler(req, res) {
         const mailOptions = {
             from: `"Civil Design & Construction LLC" <${emailSender}>`,
             replyTo: emailSender, // 👈 ক্লায়েন্ট রিপ্লাই দিলে সোজা সার্ভিস ইনবক্সে আসবে
-            to: clientEmail,
-            subject: finalSubject, // 👈 সাবজেক্টে ট্র্যাকিং কোড সহ ফাইনাল সাবজেক্ট
+            to: extractedEmail,
+            subject: finalSubject, // 👈 সাবজেক্টে এখন নিশ্চিতভাবে ট্র্যাকিং কোড সহ চলে যাবে
             html: htmlBody,
             attachments: mailAttachments
         };
