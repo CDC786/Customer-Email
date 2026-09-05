@@ -28,22 +28,26 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'Client email and details are required' });
         }
 
-        // 🧠 সার্ভিস ডিপার্টমেন্টের জন্য কনফিগারেশন (ক্লায়েন্ট রিপ্লাই দিলে service@cdc-llc.net এ যাবে)
-        const replyToEmail = 'service@cdc-llc.net';
-        const trackingCode = proposalId || `CDC-SRV-${Math.floor(100000 + Math.random() * 900000)}`;
+        // 🧠 সার্ভিস ডিপার্টমেন্টের কনফিগারেশন
+        const emailSender = 'service@cdc-llc.net';
+        const trackingPrefix = 'SRV';
 
-        // 🎯 আপনার চাওয়া ফরম্যাট অনুযায়ী সাবজেক্ট লাইন তৈরি করা
+        // 🎯 ট্র্যাকিং কোড জেনারেট বা রিসিভ করা
+        const randomNum = Math.floor(100000 + Math.random() * 900000);
+        const trackingCode = proposalId || `CDC-${trackingPrefix}-${randomNum}`;
+
+        // 🔍 সাবজেক্ট লাইনে ট্র্যাকিং কোড বসানোর পারফেক্ট ফরম্যাট
         const projNameStr = projectName ? ` - ${projectName}` : '';
         const finalSubject = `[Tracking ID: ${trackingCode}] Financial Proposal & BOQ${projNameStr}`;
 
-        // 🚀 মাস্টার সেন্ডার: জিমেইল SMTP (joincdc@gmail.com থেকে মেইল যাবে)
+        // 🚀 জোহো SMTP কনফিগারেশন (service@cdc-llc.net এর মাধ্যমে পাঠানোর জন্য)
         const transporter = nodemailer.createTransport({
-            host: 'smtp.gmail.com',
+            host: 'smtp.zoho.com',
             port: 465,
-            secure: true, 
+            secure: true,
             auth: {
-                user: process.env.GMAIL_USER, // joincdc@gmail.com
-                pass: process.env.GMAIL_PASS  // Gmail App Password
+                user: process.env.SERVICE_EMAIL_USER, 
+                pass: process.env.SERVICE_EMAIL_PASS  
             }
         });
 
@@ -61,34 +65,22 @@ export default async function handler(req, res) {
             });
         }
 
-        // 🚀 Smart Relay HTML: ফ্রন্টএন্ডের ফর্ম ডেটার নিচে ট্র্যাকিং ব্লক অ্যাড করা
-        const smartHtmlBody = `
-            ${htmlBody}
-            
-            <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 30px 0 0 0; background-color: #f8f9fa; padding: 20px; border-left: 4px solid #0056b3; border-radius: 6px; text-align: left;">
-                <p style="margin: 0; font-size: 14px; color: #555;">Your Request Tracking ID:</p>
-                <p style="margin: 5px 0 15px 0; font-size: 18px; color: #0056b3; font-weight: bold; letter-spacing: 1px;">${trackingCode}</p>
-                <p style="margin: 0; color: #444; font-size: 14px; line-height: 1.5;">
-                    <strong>Important Instructions:</strong><br>
-                    To provide additional files or updates regarding this specific proposal, <strong>please reply directly to this email</strong> keeping the subject line unchanged. Your response will be routed directly to our <strong>SERVICE</strong> team.
-                </p>
-            </div>
-        `;
-
         const mailOptions = {
-            from: `"Civil Design & Construction LLC" <${process.env.GMAIL_USER || 'joincdc@gmail.com'}>`,
-            replyTo: replyToEmail, // 👈 মেইল যাবে জিমেইল থেকে, কিন্তু ক্লায়েন্ট রিপ্লাই দিলে সোজা service@cdc-llc.net এ যাবে
-            to: clientEmail, 
-            subject: finalSubject,
-            html: smartHtmlBody, 
+            from: `"Civil Design & Construction LLC" <${emailSender}>`,
+            replyTo: emailSender, // 👈 ক্লায়েন্ট রিপ্লাই দিলে সোজা সার্ভিস ইনবক্সে আসবে
+            to: clientEmail,
+            subject: finalSubject, // 👈 সাবজেক্টে ট্র্যাকিং কোড সহ ফাইনাল সাবজেক্ট
+            html: htmlBody,
             attachments: mailAttachments
         };
 
-        await transporter.sendMail(mailOptions);
-        return res.status(200).json({ success: true, trackingCode, message: 'Proposal submitted and smart email sent successfully!' });
+        const info = await transporter.sendMail(mailOptions);
+        console.log("Proposal Email Sent Successfully. MessageId:", info.messageId);
+
+        return res.status(200).json({ success: true, trackingCode, message: 'Proposal and tracking email sent successfully!' });
 
     } catch (error) {
-        console.error("Proposal Email Error:", error);
-        return res.status(500).json({ error: "Failed to process proposal: " + error.message });
+        console.error("Proposal Email Critical Error:", error);
+        return res.status(500).json({ error: "Failed to send proposal: " + error.message });
     }
 }
