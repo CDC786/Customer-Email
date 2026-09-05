@@ -30,12 +30,16 @@ export default async function handler(req, res) {
 
         const emailSender = 'service@cdc-llc.net';
 
-        // 🎯 ফ্রন্টএন্ড থেকে আসা Proposal ID-কে শতভাগ গুরুত্ব দেওয়া
-        const trackingCode = proposalId || `CDC-SRV-${Math.floor(100000 + Math.random() * 900000)}`;
+        // 🎯 এখানে ফিক্স করা হয়েছে: ফ্রন্টএন্ড থেকে proposalId না আসলে যাতে ইনপুট ফিল্ড বা রেন্ডম আইডি ধরে সাবজেক্ট মিস না হয়
+        const trackingCode = (proposalId && proposalId.trim() !== "") 
+            ? proposalId.trim() 
+            : `CDC-SRV-${Math.floor(100000 + Math.random() * 900000)}`;
 
-        // 🔍 সাবজেক্টের একদম শুরুতে ট্র্যাকিং আইডি বসানোর লজিক
+        // 🔍 সাবজেক্টের একদম সামনে ট্র্যাকিং আইডি বসানোর সুনির্দিষ্ট লজিক
         const projNameStr = projectName ? ` - ${projectName}` : '';
         const finalSubject = `[Tracking ID: ${trackingCode}] Financial Proposal & BOQ${projNameStr}`;
+
+        console.log("📌 Final Forced Email Subject:", finalSubject);
 
         const transporter = nodemailer.createTransport({
             host: 'smtp.zoho.com',
@@ -64,13 +68,15 @@ export default async function handler(req, res) {
             from: `"Civil Design & Construction LLC" <${emailSender}>`,
             replyTo: emailSender,
             to: clientEmail,
-            subject: finalSubject, // 👈 সাবজেক্টের সামনে ট্র্যাকিং কোড নিশ্চিত করা হলো
+            subject: finalSubject, // 👈 এখন হুবহু [Tracking ID: ...] Financial Proposal & BOQ - New House আসবে
             html: htmlBody,
             attachments: mailAttachments
         };
 
         const info = await transporter.sendMail(mailOptions);
-        return res.status(200).json({ success: true, trackingCode, message: 'Proposal sent successfully!' });
+        console.log("Proposal Email Sent Successfully. MessageId:", info.messageId);
+
+        return res.status(200).json({ success: true, trackingCode, message: 'Proposal sent successfully with subject ID!' });
 
     } catch (error) {
         console.error("Proposal Email Critical Error:", error);
