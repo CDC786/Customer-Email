@@ -46,7 +46,7 @@ export default async function handler(req, res) {
 
         let emailUser, emailPass, emailSender, trackingPrefix, smtpHost;
         
-        // নতুন সার্ভিস ডিপার্টমেন্টসহ ডাইনামিক সুইচিং
+        // একদম পারফেক্ট ডাইনামিক রাউটিং (Zoho vs Gmail)
         switch (department) {
             case 'service':
                 emailUser = process.env.SERVICE_EMAIL_USER;
@@ -70,19 +70,27 @@ export default async function handler(req, res) {
                 smtpHost = 'smtp.zoho.com'; // জোহো সার্ভার
                 break;
             case 'info':
+                emailUser = process.env.INFO_EMAIL_USER;
+                emailPass = process.env.INFO_EMAIL_PASS;
+                emailSender = 'info@cdc-llc.net';
+                trackingPrefix = 'INQ';
+                smtpHost = 'smtp.zoho.com'; // জোহো সার্ভার
+                break;
+            case 'joincdc':
+            case 'gmail':
             default:
+                // শুধুমাত্র joincdc@gmail.com বা যেকোনো জিমেইলের জন্য
                 emailUser = process.env.GMAIL_USER;
                 emailPass = process.env.GMAIL_PASS;
-                emailSender = process.env.GMAIL_USER;
-                trackingPrefix = 'INQ';
-                smtpHost = 'smtp.gmail.com'; // জিমেইল সার্ভার
+                emailSender = process.env.GMAIL_USER || 'joincdc@gmail.com';
+                trackingPrefix = 'JNC';
+                smtpHost = 'smtp.gmail.com'; // গুগলের জিমেইল সার্ভার
                 break;
         }
 
         const randomNum = Math.floor(100000 + Math.random() * 900000);
         const trackingCode = `CDC-${trackingPrefix}-${randomNum}`;
 
-        // ডাইনামিক কনফিগারেশন
         const smtpConfig = {
             host: smtpHost,
             port: 465,
