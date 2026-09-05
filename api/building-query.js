@@ -3,7 +3,7 @@ import nodemailer from 'nodemailer';
 export const config = {
     api: {
         bodyParser: {
-            sizeLimit: '25mb', // Increased slightly for multiple maps/documents + auto PDF
+            sizeLimit: '25mb', // Increased for multiple maps/documents + auto PDF
         },
     },
 };
@@ -13,6 +13,7 @@ export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
+    // Handle preflight requests
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
     }
@@ -22,7 +23,7 @@ export default async function handler(req, res) {
     }
 
     try {
-        // ফ্রন্টএন্ড থেকে ডেটার সাথে department রিসিভ করা হচ্ছে (না থাকলে ডিফল্ট 'info' ধরবে)
+        // ফ্রন্টএন্ড থেকে ডেটা রিসিভ করা হচ্ছে (department না দিলে ডিফল্ট 'info' ধরবে)
         const { clientEmail, clientName, htmlBody, attachmentsList, department = 'info', subjectLine } = req.body;
 
         if (!clientEmail || !htmlBody) {
@@ -31,25 +32,25 @@ export default async function handler(req, res) {
 
         let replyToEmail, trackingPrefix;
 
-        // 🧠 ডাইনামিক ডিপার্টমেন্ট রাউটিং (ক্লায়েন্ট রিপ্লাই দিলে কোথায় যাবে)
+        // 🧠 ডাইনামিক ডিপার্টমেন্ট রাউটিং (আপনার বিজনেস লজিক অনুযায়ী ক্লায়েন্ট রিপ্লাই দিলে কোথায় যাবে)
         const targetDept = department.toLowerCase();
         switch (targetDept) {
             case 'service':
-                replyToEmail = 'service@cdc-llc.net';
+                replyToEmail = 'service@cdc-llc.net'; // কোর ইঞ্জিনিয়ারিং এবং আর্কিটেকচারাল সলিউশন
                 trackingPrefix = 'SRV';
                 break;
             case 'payments':
             case 'payment':
-                replyToEmail = 'payments@cdc-llc.net';
+                replyToEmail = 'payments@cdc-llc.net'; // ফিনান্সিয়াল প্রপোজাল বা বিলিং
                 trackingPrefix = 'PAY';
                 break;
             case 'support':
-                replyToEmail = 'support@cdc-llc.net';
+                replyToEmail = 'support@cdc-llc.net'; // টেকনিক্যাল সাপোর্ট
                 trackingPrefix = 'SUP';
                 break;
             case 'info':
             default:
-                replyToEmail = 'info@cdc-llc.net';
+                replyToEmail = 'info@cdc-llc.net'; // রিসেপশন ডেস্ক বা জেনারেল ইনকয়ারি
                 trackingPrefix = 'INQ';
                 break;
         }
@@ -61,7 +62,7 @@ export default async function handler(req, res) {
             ? `[Tracking ID: ${trackingCode}] ${subjectLine}` 
             : `[Tracking ID: ${trackingCode}] Project Inquiry Received - Civil Design & Construction LLC`;
 
-        // 🚀 মাস্টার সেন্ডার: জিমেইল SMTP (joincdc@gmail.com থেকে মেইল যাবে)
+        // 🚀 মাস্টার সেন্ডার: জিমেইল SMTP (মেইল যাবে joincdc@gmail.com থেকে)
         const transporter = nodemailer.createTransport({
             host: 'smtp.gmail.com',
             port: 465,
@@ -72,7 +73,7 @@ export default async function handler(req, res) {
             }
         });
 
-        // Process user uploaded files and the auto-generated PDF receipt
+        // প্রসেস অ্যাটাচমেন্টস (ফাইল বা অটো জেনারেটেড পিডিএফ)
         let mailAttachments = [];
         if (attachmentsList && Array.isArray(attachmentsList)) {
             attachmentsList.forEach(file => {
@@ -100,21 +101,22 @@ export default async function handler(req, res) {
             </div>
         `;
 
+        // মেইল পাঠানোর মূল কনফিগারেশন
         const mailOptions = {
             from: `"Civil Design & Construction LLC" <${process.env.GMAIL_USER || 'joincdc@gmail.com'}>`,
-            replyTo: replyToEmail, // 👈 জাদুটা এখানে: মেইল যাবে জিমেইল থেকে, কিন্তু রিপ্লাই আসবে জোহোতে
-            to: clientEmail, 
-            // bcc: 'joincdc@gmail.com' // এটি কমেন্ট আউট করে দিলাম কারণ জিমেইল থেকে গেলে সেন্ট (Sent) বক্সে এমনিতেই সেভ থাকবে।
+            replyTo: replyToEmail, // 👈 ক্লায়েন্ট রিপ্লাই দিলে এই জোহো ডিপার্টমেন্টে আসবে
+            to: clientEmail,       // 👈 ফর্ম থেকে পাওয়া ক্লায়েন্টের ইমেইলে মেইল যাবে
             subject: finalSubject,
             html: smartHtmlBody, 
             attachments: mailAttachments
         };
 
+        // মেইল সেন্ড করা
         await transporter.sendMail(mailOptions);
-        return res.status(200).json({ success: true, trackingCode, message: 'Inquiry submitted and smart email sent successfully!' });
+        return res.status(200).json({ success: true, trackingCode, message: 'Form submitted and smart email sent successfully!' });
 
     } catch (error) {
-        console.error("Project Inquiry Email Error:", error);
-        return res.status(500).json({ error: "Failed to process inquiry: " + error.message });
+        console.error("Smart Routing Email Error:", error);
+        return res.status(500).json({ error: "Failed to process form: " + error.message });
     }
 }
