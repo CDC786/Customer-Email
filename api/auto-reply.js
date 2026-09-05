@@ -46,45 +46,43 @@ export default async function handler(req, res) {
 
         let emailUser, emailPass, emailSender, trackingPrefix, smtpHost;
         
-        // একদম পারফেক্ট ডাইনামিক রাউটিং (Zoho vs Gmail)
         switch (department) {
             case 'service':
                 emailUser = process.env.SERVICE_EMAIL_USER;
                 emailPass = process.env.SERVICE_EMAIL_PASS;
                 emailSender = 'service@cdc-llc.net';
                 trackingPrefix = 'SRV';
-                smtpHost = 'smtp.zoho.com'; // জোহো সার্ভার
+                smtpHost = 'smtp.zoho.com';
                 break;
             case 'payments':
                 emailUser = process.env.PAYMENT_EMAIL_USER;
                 emailPass = process.env.PAYMENT_EMAIL_PASS;
                 emailSender = 'payments@cdc-llc.net';
                 trackingPrefix = 'PAY';
-                smtpHost = 'smtp.zoho.com'; // জোহো সার্ভার
+                smtpHost = 'smtp.zoho.com';
                 break;
             case 'support':
                 emailUser = process.env.SUPPORT_EMAIL_USER;
                 emailPass = process.env.SUPPORT_EMAIL_PASS;
                 emailSender = 'support@cdc-llc.net';
                 trackingPrefix = 'SUP';
-                smtpHost = 'smtp.zoho.com'; // জোহো সার্ভার
+                smtpHost = 'smtp.zoho.com';
                 break;
             case 'info':
                 emailUser = process.env.INFO_EMAIL_USER;
                 emailPass = process.env.INFO_EMAIL_PASS;
                 emailSender = 'info@cdc-llc.net';
                 trackingPrefix = 'INQ';
-                smtpHost = 'smtp.zoho.com'; // জোহো সার্ভার
+                smtpHost = 'smtp.zoho.com';
                 break;
             case 'joincdc':
             case 'gmail':
             default:
-                // শুধুমাত্র joincdc@gmail.com বা যেকোনো জিমেইলের জন্য
                 emailUser = process.env.GMAIL_USER;
                 emailPass = process.env.GMAIL_PASS;
                 emailSender = process.env.GMAIL_USER || 'joincdc@gmail.com';
                 trackingPrefix = 'JNC';
-                smtpHost = 'smtp.gmail.com'; // গুগলের জিমেইল সার্ভার
+                smtpHost = 'smtp.gmail.com';
                 break;
         }
 
@@ -105,12 +103,13 @@ export default async function handler(req, res) {
             }
         });
 
+        // এখানে মার্জিন বামে (Left) নিয়ে আসার জন্য স্টাইল আপডেট করা হয়েছে
         const htmlBody = `
-            <div style="font-family: Arial, sans-serif; background-color: #f4f6f9; padding: 30px 0;">
-                <div style="max-width: 600px; margin: 0 auto; background: #ffffff; padding: 35px; border-radius: 8px; border: 1px solid #dcdcdc; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+            <div style="font-family: Arial, sans-serif; background-color: #f4f6f9; padding: 30px 10px; text-align: left;">
+                <div style="max-width: 600px; margin: 0; background: #ffffff; padding: 35px; border-radius: 8px; border: 1px solid #dcdcdc; box-shadow: 0 2px 5px rgba(0,0,0,0.05); text-align: left;">
                     
-                    <h2 style="color: #0056b3; margin-top: 0; text-align: center; font-size: 22px;">Civil Design & Construction LLC</h2>
-                    <p style="text-align: center; color: #666; font-size: 13px; margin-top: -5px;">Sheridan, Wyoming | www.cdc-llc.net</p>
+                    <h2 style="color: #0056b3; margin-top: 0; text-align: left; font-size: 22px;">Civil Design & Construction LLC</h2>
+                    <p style="text-align: left; color: #666; font-size: 13px; margin-top: -5px;">Sheridan, Wyoming | www.cdc-llc.net</p>
                     
                     <hr style="border: none; border-top: 2px solid #0056b3; margin: 20px 0;">
                     
@@ -135,7 +134,7 @@ export default async function handler(req, res) {
 
                     <hr style="border: none; border-top: 1px solid #eee; margin: 25px 0;">
                     
-                    <p style="font-size: 13px; color: #666; line-height: 1.4; text-align: center; margin-bottom: 0;">
+                    <p style="font-size: 13px; color: #666; line-height: 1.4; text-align: left; margin-bottom: 0;">
                         <strong>Civil Design & Construction LLC</strong><br>
                         USA WhatsApp: +1 (929) 237-1398 | BD: +880 1718-754948<br>
                         Website: <a href="https://www.cdc-llc.net" style="color: #0056b3; text-decoration: none;">www.cdc-llc.net</a>
