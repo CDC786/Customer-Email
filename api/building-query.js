@@ -29,40 +29,48 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'Client email and details are required' });
         }
 
-        let replyToEmail;
+        let replyToEmail, trackingPrefix;
 
-        // 🧠 ডাইনামিক ডিপার্টমেন্ট রাউটিং (ক্লায়েন্ট রিপ্লাই দিলে কোথায় যাবে)
+        // 🧠 ডাইনামিক ডিপার্টমেন্ট রাউটিং এবং ট্র্যাকিং প্রিফিক্স নির্ধারণ
         const targetDept = department.toLowerCase();
         switch (targetDept) {
             case 'service':
             case 'challan':
-                replyToEmail = 'service@cdc-llc.net'; // কোর ইঞ্জিনিয়ারিং, সার্ভিস ও চালান
+                replyToEmail = 'service@cdc-llc.net';
+                trackingPrefix = 'SRV';
                 break;
             case 'payments':
             case 'payment':
-                replyToEmail = 'payments@cdc-llc.net'; // ফিনান্সিয়াল প্রপোজাল বা বিলিং
+                replyToEmail = 'payments@cdc-llc.net';
+                trackingPrefix = 'PAY';
                 break;
             case 'support':
-                replyToEmail = 'support@cdc-llc.net'; // টেকনিক্যাল সাপোর্ট
+                replyToEmail = 'support@cdc-llc.net';
+                trackingPrefix = 'SUP';
                 break;
             case 'info':
             default:
-                replyToEmail = 'info@cdc-llc.net'; // রিসেপশন ডেস্ক বা জেনারেল ইনকয়ারি
+                replyToEmail = 'info@cdc-llc.net';
+                trackingPrefix = 'INQ';
                 break;
         }
 
-        // 🎯 শুধু ৬ ডিজিটের ট্র্যাকিং কোড জেনারেট করা (যেমন: 458921) - কোনো প্রিফিক্স বা ব্র্যাকেট ছাড়া
-        const trackingCode = Math.floor(100000 + Math.random() * 900000).toString();
+        // 🎯 প্রফেশনাল ট্র্যাকিং আইডি জেনারেট করা (যেমন: CDC-SRV-359491)
+        const randomNum = Math.floor(100000 + Math.random() * 900000);
+        const trackingCode = `CDC-${trackingPrefix}-${randomNum}`;
 
-        // ✉️ সাবজেক্ট ফরম্যাট: একদম শুরুতে শুধু ৬ ডিজিটের কোড, যাতে জিমেইলে ইজিলি সার্চ করে পাওয়া যায়
-        let finalSubject = '';
+        // ✉️ সাবজেক্ট ফরম্যাট: ট্র্যাকিং আইডি সবসময় একদম শুরুতে থাকবে
+        let baseSubject = '';
         if (subjectLine) {
-            finalSubject = `${trackingCode} - ${subjectLine}`;
+            baseSubject = subjectLine;
         } else if (invoiceNumber) {
-            finalSubject = `${trackingCode} - Delivery Challan #${invoiceNumber} - Civil Design & Construction LLC`;
+            baseSubject = `Delivery Challan #${invoiceNumber} - Civil Design & Construction LLC`;
         } else {
-            finalSubject = `${trackingCode} - Project Inquiry Received - Civil Design & Construction LLC`;
+            baseSubject = `Project Inquiry Received - Civil Design & Construction LLC`;
         }
+
+        // মূল সাবজেক্ট যার শুরুতে বাধ্যতামূলকভাবে ট্র্যাকিং আইডি যুক্ত থাকবে
+        const finalSubject = `[Tracking ID: ${trackingCode}] ${baseSubject}`;
 
         // 🚀 মাস্টার সেন্ডার: জিমেইল SMTP (মেইল যাবে joincdc@gmail.com থেকে)
         const transporter = nodemailer.createTransport({
@@ -108,7 +116,7 @@ export default async function handler(req, res) {
             from: `"Civil Design & Construction LLC" <${process.env.GMAIL_USER || 'joincdc@gmail.com'}>`,
             replyTo: replyToEmail, // 👈 ক্লায়েন্ট রিপ্লাই দিলে এই জোহো ডিপার্টমেন্টে চলে যাবে
             to: clientEmail,       // 👈 ফর্ম থেকে পাওয়া ক্লায়েন্টের ইমেইল
-            subject: finalSubject, // 👈 সাবজেক্টের শুরুতে শুধু ৬ ডিজিটের কোড (যেমন: 458921 - ...)
+            subject: finalSubject, // 👈 সাবজেক্টের শুরুতে সবসময় [Tracking ID: CDC-...] থাকবে
             html: smartHtmlBody, 
             attachments: mailAttachments
         };
