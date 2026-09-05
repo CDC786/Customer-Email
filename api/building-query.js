@@ -3,7 +3,7 @@ import nodemailer from 'nodemailer';
 export const config = {
     api: {
         bodyParser: {
-            sizeLimit: '25mb', // Increased for multiple maps/documents + auto PDF
+            sizeLimit: '25mb', // Handles auto-generated PDF and attachments safely
         },
     },
 };
@@ -13,7 +13,6 @@ export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-    // Handle preflight requests
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
     }
@@ -23,44 +22,47 @@ export default async function handler(req, res) {
     }
 
     try {
-        // ফ্রন্টএন্ড থেকে ডেটা রিসিভ করা হচ্ছে (department না দিলে ডিফল্ট 'info' ধরবে)
-        const { clientEmail, clientName, htmlBody, attachmentsList, department = 'info', subjectLine } = req.body;
+        // ফ্রন্টএন্ড থেকে ডেটা রিসিভ করা হচ্ছে
+        const { clientEmail, clientName, htmlBody, attachmentsList, department = 'info', subjectLine, invoiceNumber } = req.body;
 
         if (!clientEmail || !htmlBody) {
             return res.status(400).json({ error: 'Client email and details are required' });
         }
 
-        let replyToEmail, trackingPrefix;
+        let replyToEmail;
 
-        // 🧠 ডাইনামিক ডিপার্টমেন্ট রাউটিং (আপনার বিজনেস লজিক অনুযায়ী ক্লায়েন্ট রিপ্লাই দিলে কোথায় যাবে)
+        // 🧠 ডাইনামিক ডিপার্টমেন্ট রাউটিং (ক্লায়েন্ট রিপ্লাই দিলে কোথায় যাবে)
         const targetDept = department.toLowerCase();
         switch (targetDept) {
             case 'service':
-                replyToEmail = 'service@cdc-llc.net'; // কোর ইঞ্জিনিয়ারিং এবং আর্কিটেকচারাল সলিউশন
-                trackingPrefix = 'SRV';
+            case 'challan':
+                replyToEmail = 'service@cdc-llc.net'; // কোর ইঞ্জিনিয়ারিং, সার্ভিস ও চালান
                 break;
             case 'payments':
             case 'payment':
                 replyToEmail = 'payments@cdc-llc.net'; // ফিনান্সিয়াল প্রপোজাল বা বিলিং
-                trackingPrefix = 'PAY';
                 break;
             case 'support':
                 replyToEmail = 'support@cdc-llc.net'; // টেকনিক্যাল সাপোর্ট
-                trackingPrefix = 'SUP';
                 break;
             case 'info':
             default:
                 replyToEmail = 'info@cdc-llc.net'; // রিসেপশন ডেস্ক বা জেনারেল ইনকয়ারি
-                trackingPrefix = 'INQ';
                 break;
         }
 
-        // 🎯 জেনারেট ট্র্যাকিং আইডি
-        const randomNum = Math.floor(100000 + Math.random() * 900000);
-        const trackingCode = `CDC-${trackingPrefix}-${randomNum}`;
-        const finalSubject = subjectLine 
-            ? `[Tracking ID: ${trackingCode}] ${subjectLine}` 
-            : `[Tracking ID: ${trackingCode}] Project Inquiry Received - Civil Design & Construction LLC`;
+        // 🎯 শুধু ৬ ডিজিটের ট্র্যাকিং কোড জেনারেট করা (যেমন: 458921) - কোনো প্রিফিক্স বা ব্র্যাকেট ছাড়া
+        const trackingCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+        // ✉️ সাবজেক্ট ফরম্যাট: একদম শুরুতে শুধু ৬ ডিজিটের কোড, যাতে জিমেইলে ইজিলি সার্চ করে পাওয়া যায়
+        let finalSubject = '';
+        if (subjectLine) {
+            finalSubject = `${trackingCode} - ${subjectLine}`;
+        } else if (invoiceNumber) {
+            finalSubject = `${trackingCode} - Delivery Challan #${invoiceNumber} - Civil Design & Construction LLC`;
+        } else {
+            finalSubject = `${trackingCode} - Project Inquiry Received - Civil Design & Construction LLC`;
+        }
 
         // 🚀 মাস্টার সেন্ডার: জিমেইল SMTP (মেইল যাবে joincdc@gmail.com থেকে)
         const transporter = nodemailer.createTransport({
@@ -73,7 +75,7 @@ export default async function handler(req, res) {
             }
         });
 
-        // প্রসেস অ্যাটাচমেন্টস (ফাইল বা অটো জেনারেটেড পিডিএফ)
+        // প্রসেস অ্যাটাচমেন্টস
         let mailAttachments = [];
         if (attachmentsList && Array.isArray(attachmentsList)) {
             attachmentsList.forEach(file => {
@@ -87,7 +89,7 @@ export default async function handler(req, res) {
             });
         }
 
-        // 🚀 Smart Relay HTML: ফ্রন্টএন্ডের ফর্ম ডেটার নিচে ট্র্যাকিং ব্লক অ্যাড করা
+        // 🚀 Smart Relay HTML: ফরমের নিচে ট্র্যাকিং কোড ও ইনস্ট্রাকশন ব্লক
         const smartHtmlBody = `
             ${htmlBody}
             
@@ -96,17 +98,17 @@ export default async function handler(req, res) {
                 <p style="margin: 5px 0 15px 0; font-size: 18px; color: #0056b3; font-weight: bold; letter-spacing: 1px;">${trackingCode}</p>
                 <p style="margin: 0; color: #444; font-size: 14px; line-height: 1.5;">
                     <strong>Important Instructions:</strong><br>
-                    To provide additional files or updates regarding this specific request, <strong>please reply directly to this email</strong> keeping the subject line unchanged. Your response will be routed directly to our <strong>${targetDept.toUpperCase()}</strong> team.
+                    To provide additional files or updates regarding this request, <strong>please reply directly to this email</strong> keeping the subject line unchanged. Your response will be routed directly to our <strong>${targetDept.toUpperCase()}</strong> team.
                 </p>
             </div>
         `;
 
-        // মেইল পাঠানোর মূল কনফিগারেশন
+        // মেইল অপশনস
         const mailOptions = {
             from: `"Civil Design & Construction LLC" <${process.env.GMAIL_USER || 'joincdc@gmail.com'}>`,
-            replyTo: replyToEmail, // 👈 ক্লায়েন্ট রিপ্লাই দিলে এই জোহো ডিপার্টমেন্টে আসবে
-            to: clientEmail,       // 👈 ফর্ম থেকে পাওয়া ক্লায়েন্টের ইমেইলে মেইল যাবে
-            subject: finalSubject,
+            replyTo: replyToEmail, // 👈 ক্লায়েন্ট রিপ্লাই দিলে এই জোহো ডিপার্টমেন্টে চলে যাবে
+            to: clientEmail,       // 👈 ফর্ম থেকে পাওয়া ক্লায়েন্টের ইমেইল
+            subject: finalSubject, // 👈 সাবজেক্টের শুরুতে শুধু ৬ ডিজিটের কোড (যেমন: 458921 - ...)
             html: smartHtmlBody, 
             attachments: mailAttachments
         };
