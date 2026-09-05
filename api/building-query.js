@@ -3,12 +3,13 @@ import nodemailer from 'nodemailer';
 export const config = {
     api: {
         bodyParser: {
-            sizeLimit: '25mb',
+            sizeLimit: '20mb',
         },
     },
 };
 
 export default async function handler(req, res) {
+    // CORS headers for allowing requests from your frontend
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -22,37 +23,25 @@ export default async function handler(req, res) {
     }
 
     try {
-        // ফ্রন্টএন্ড থেকে আসা projectLocation সহ সমস্ত ফিল্ড রিসিভ করা হচ্ছে
-        const { clientEmail, projectName, projectLocation, proposalId, htmlBody, attachmentsList } = req.body || {};
+        // Receiving data from the BOQ frontend form
+        const { clientEmail, projectName, htmlBody, attachmentsList } = req.body;
 
         if (!clientEmail || !htmlBody) {
-            return res.status(400).json({ error: 'Client email and htmlBody are required' });
+            return res.status(400).json({ error: 'Client email and message content are required' });
         }
 
-        const emailSender = 'service@cdc-llc.net';
-
-        // প্রপোজাল আইডি নিশ্চিত করা
-        const trackingCode = (proposalId && proposalId.trim() !== "") 
-            ? proposalId.trim() 
-            : `CDC-SRV-${Math.floor(100000 + Math.random() * 900000)}`;
-
-        // সাবজেক্ট ফরম্যাট: [Tracking ID] Financial Proposal & BOQ - Project Name - Location
-        const projNameStr = projectName ? ` - ${projectName.trim()}` : '';
-        const locationStr = projectLocation ? ` - ${projectLocation.trim()}` : '';
-        const finalSubject = `[${trackingCode}] Financial Proposal & BOQ${projNameStr}${locationStr}`;
-
-        console.log("📌 Final Email Subject:", finalSubject);
-
+        // জোহো SMTP কনফিগারেশন (service@cdc-llc.net এর মাধ্যমে BOQ প্রপোজাল পাঠানোর জন্য)
         const transporter = nodemailer.createTransport({
             host: 'smtp.zoho.com',
             port: 465,
-            secure: true,
+            secure: true, // 465 পোর্টের জন্য true
             auth: {
-                user: process.env.SERVICE_EMAIL_USER, 
-                pass: process.env.SERVICE_EMAIL_PASS  
+                user: process.env.SERVICE_EMAIL_USER, // service@cdc-llc.net
+                pass: process.env.SERVICE_EMAIL_PASS  // জোহো থেকে জেনারেট করা service মেইলের App Password
             }
         });
 
+        // Process attachments (Including the auto-generated BOQ Proposal PDF)
         let mailAttachments = [];
         if (attachmentsList && Array.isArray(attachmentsList)) {
             attachmentsList.forEach(file => {
@@ -66,20 +55,22 @@ export default async function handler(req, res) {
             });
         }
 
+        // Email configurations
         const mailOptions = {
-            from: `"Civil Design & Construction LLC" <${emailSender}>`,
-            replyTo: emailSender,
+            from: '"Civil Design & Construction LLC" <service@cdc-llc.net>',
+            replyTo: 'service@cdc-llc.net', // ক্লায়েন্ট রিপ্লাই দিলে সার্ভিস মেইলেই আসবে
             to: clientEmail,
-            subject: finalSubject, // 👈 সাবজেক্টে এখন ট্র্যাকিং আইডি, প্রজেক্টের নাম ও লোকেশন পারফেক্টলি চলে যাবে
-            html: htmlBody,
+            subject: `Financial Proposal & BOQ - ${projectName || 'Civil Design & Construction LLC'}`,
+            html: htmlBody, // The beautifully formatted HTML sent from the frontend
             attachments: mailAttachments
         };
 
-        const info = await transporter.sendMail(mailOptions);
-        return res.status(200).json({ success: true, trackingCode, message: 'Proposal sent successfully with full subject!' });
+        // Send the email
+        await transporter.sendMail(mailOptions);
+        return res.status(200).json({ success: true, message: 'BOQ Proposal Email sent successfully via Service Mail!' });
 
     } catch (error) {
-        console.error("Proposal Email Critical Error:", error);
-        return res.status(500).json({ error: "Failed to process proposal: " + error.message });
+        console.error("BOQ Email Error:", error);
+        return res.status(500).json({ error: "Failed to send BOQ email: " + error.message });
     }
 }
