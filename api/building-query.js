@@ -22,7 +22,8 @@ export default async function handler(req, res) {
     }
 
     try {
-        const { clientEmail, projectName, proposalId, htmlBody, attachmentsList } = req.body || {};
+        // ফ্রন্টএন্ড থেকে আসা projectLocation সহ সমস্ত ফিল্ড রিসিভ করা হচ্ছে
+        const { clientEmail, projectName, projectLocation, proposalId, htmlBody, attachmentsList } = req.body || {};
 
         if (!clientEmail || !htmlBody) {
             return res.status(400).json({ error: 'Client email and htmlBody are required' });
@@ -30,16 +31,17 @@ export default async function handler(req, res) {
 
         const emailSender = 'service@cdc-llc.net';
 
-        // 🎯 এখানে ফিক্স করা হয়েছে: ফ্রন্টএন্ড থেকে proposalId না আসলে যাতে ইনপুট ফিল্ড বা রেন্ডম আইডি ধরে সাবজেক্ট মিস না হয়
+        // প্রপোজাল আইডি নিশ্চিত করা
         const trackingCode = (proposalId && proposalId.trim() !== "") 
             ? proposalId.trim() 
             : `CDC-SRV-${Math.floor(100000 + Math.random() * 900000)}`;
 
-        // 🔍 সাবজেক্টের একদম সামনে ট্র্যাকিং আইডি বসানোর সুনির্দিষ্ট লজিক
-        const projNameStr = projectName ? ` - ${projectName}` : '';
-        const finalSubject = `[Tracking ID: ${trackingCode}] Financial Proposal & BOQ${projNameStr}`;
+        // সাবজেক্ট ফরম্যাট: [Tracking ID] Financial Proposal & BOQ - Project Name - Location
+        const projNameStr = projectName ? ` - ${projectName.trim()}` : '';
+        const locationStr = projectLocation ? ` - ${projectLocation.trim()}` : '';
+        const finalSubject = `[${trackingCode}] Financial Proposal & BOQ${projNameStr}${locationStr}`;
 
-        console.log("📌 Final Forced Email Subject:", finalSubject);
+        console.log("📌 Final Email Subject:", finalSubject);
 
         const transporter = nodemailer.createTransport({
             host: 'smtp.zoho.com',
@@ -68,18 +70,16 @@ export default async function handler(req, res) {
             from: `"Civil Design & Construction LLC" <${emailSender}>`,
             replyTo: emailSender,
             to: clientEmail,
-            subject: finalSubject, // 👈 এখন হুবহু [Tracking ID: ...] Financial Proposal & BOQ - New House আসবে
+            subject: finalSubject, // 👈 সাবজেক্টে এখন ট্র্যাকিং আইডি, প্রজেক্টের নাম ও লোকেশন পারফেক্টলি চলে যাবে
             html: htmlBody,
             attachments: mailAttachments
         };
 
         const info = await transporter.sendMail(mailOptions);
-        console.log("Proposal Email Sent Successfully. MessageId:", info.messageId);
-
-        return res.status(200).json({ success: true, trackingCode, message: 'Proposal sent successfully with subject ID!' });
+        return res.status(200).json({ success: true, trackingCode, message: 'Proposal sent successfully with full subject!' });
 
     } catch (error) {
         console.error("Proposal Email Critical Error:", error);
-        return res.status(500).json({ error: "Failed to send proposal: " + error.message });
+        return res.status(500).json({ error: "Failed to process proposal: " + error.message });
     }
 }
