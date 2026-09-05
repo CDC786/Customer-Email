@@ -28,19 +28,15 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'Client email and htmlBody are required' });
         }
 
-        // 🧠 সার্ভিস ডিপার্টমেন্ট কনফিগারেশন (ক্লায়েন্ট রিপ্লাই দিলে service@cdc-llc.net এ যাবে)
         const emailSender = 'service@cdc-llc.net';
 
-        // 🎯 ফ্রন্টএন্ড থেকে আসা Proposal ID সরাসরি ট্র্যাকিং কোড হিসেবে ব্যবহার করা
+        // 🎯 ফ্রন্টএন্ড থেকে আসা Proposal ID-কে শতভাগ গুরুত্ব দেওয়া
         const trackingCode = proposalId || `CDC-SRV-${Math.floor(100000 + Math.random() * 900000)}`;
 
-        // 🔍 সাবজেক্টের একেবারে সামনে ট্র্যাকিং কোড বসানোর চূড়ান্ত ফরম্যাট
+        // 🔍 সাবজেক্টের একদম শুরুতে ট্র্যাকিং আইডি বসানোর লজিক
         const projNameStr = projectName ? ` - ${projectName}` : '';
         const finalSubject = `[Tracking ID: ${trackingCode}] Financial Proposal & BOQ${projNameStr}`;
 
-        console.log("📌 Final Email Subject to be sent:", finalSubject);
-
-        // 🚀 জোহো SMTP কনফিগারেশন (service@cdc-llc.net)
         const transporter = nodemailer.createTransport({
             host: 'smtp.zoho.com',
             port: 465,
@@ -51,7 +47,6 @@ export default async function handler(req, res) {
             }
         });
 
-        // Process attachments
         let mailAttachments = [];
         if (attachmentsList && Array.isArray(attachmentsList)) {
             attachmentsList.forEach(file => {
@@ -67,17 +62,15 @@ export default async function handler(req, res) {
 
         const mailOptions = {
             from: `"Civil Design & Construction LLC" <${emailSender}>`,
-            replyTo: emailSender, // 👈 ক্লায়েন্ট রিপ্লাই দিলে সোজা সার্ভিস ইনবক্সে আসবে
+            replyTo: emailSender,
             to: clientEmail,
-            subject: finalSubject, // 👈 সাবজেক্টে নিশ্চিতভাবে ট্র্যাকিং আইডি সহ বসবে
+            subject: finalSubject, // 👈 সাবজেক্টের সামনে ট্র্যাকিং কোড নিশ্চিত করা হলো
             html: htmlBody,
             attachments: mailAttachments
         };
 
         const info = await transporter.sendMail(mailOptions);
-        console.log("Proposal Email Sent Successfully. MessageId:", info.messageId);
-
-        return res.status(200).json({ success: true, trackingCode, message: 'Proposal sent successfully with tracking subject!' });
+        return res.status(200).json({ success: true, trackingCode, message: 'Proposal sent successfully!' });
 
     } catch (error) {
         console.error("Proposal Email Critical Error:", error);
