@@ -32,11 +32,11 @@ export default async function handler(req, res) {
             }
         });
 
-        // মেইল অপশনস (info@cdc-llc.net থেকে নোটিফিকেশন যাবে এবং joincdc@gmail.com এ একটি BCC কপি যাবে)
+        // মেইল অপশনস (info@cdc-llc.net থেকে নোটিফিকেশন যাবে এবং জিমেইলের কপি বাদ দেওয়া হয়েছে)
         const mailOptions = {
             from: '"CDC Website Query" <info@cdc-llc.net>',
             to: process.env.INFO_EMAIL_USER, // info@cdc-llc.net ইনবক্সে মূল নোটিফিকেশন আসবে
-            bcc: 'joincdc@gmail.com', // আপনার পার্সোনাল জিমেইলে একটি কপি যাবে
+            // bcc పూర్తిగా বাদ দেওয়া হয়েছে
             replyTo: email, // ক্লায়েন্টের ইমেইল, যাতে ডাইরেক্ট রিপ্লাই দিতে পারেন
             subject: `New Quick Query from ${name}`,
             html: `
@@ -61,7 +61,7 @@ export default async function handler(req, res) {
         };
 
         await transporter.sendMail(mailOptions);
-        return res.status(200).json({ success: true, message: 'Query sent successfully!' });
+        return res.status(200).json({ success: true, message: 'Query sent successfully to Info!' });
 
     } catch (error) {
         console.error("Query Error:", error);
