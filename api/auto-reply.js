@@ -21,7 +21,6 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
-    // জোহো থেকে রিকোয়েস্ট আসার হিট লগ
     console.log("🔥 AUTO-REPLY API HIT", {
         method: req.method,
         time: new Date().toISOString(),
@@ -45,37 +44,47 @@ export default async function handler(req, res) {
         console.log("Extracted Client Email:", extractedEmail);
         console.log("Target Department:", department);
 
-        let emailUser, emailPass, emailSender, trackingPrefix;
+        let emailUser, emailPass, emailSender, trackingPrefix, smtpHost;
         
+        // নতুন সার্ভিস ডিপার্টমেন্টসহ ডাইনামিক সুইচিং
         switch (department) {
+            case 'service':
+                emailUser = process.env.SERVICE_EMAIL_USER;
+                emailPass = process.env.SERVICE_EMAIL_PASS;
+                emailSender = 'service@cdc-llc.net';
+                trackingPrefix = 'SRV';
+                smtpHost = 'smtp.zoho.com'; // জোহো সার্ভার
+                break;
             case 'payments':
-                emailUser = process.env.PAYMENT_EMAIL_USER || process.env.GMAIL_USER;
-                emailPass = process.env.PAYMENT_EMAIL_PASS || process.env.GMAIL_PASS;
-                emailSender = process.env.GMAIL_USER || 'payments@cdc-llc.net';
+                emailUser = process.env.PAYMENT_EMAIL_USER;
+                emailPass = process.env.PAYMENT_EMAIL_PASS;
+                emailSender = 'payments@cdc-llc.net';
                 trackingPrefix = 'PAY';
+                smtpHost = 'smtp.zoho.com'; // জোহো সার্ভার
                 break;
             case 'support':
-                emailUser = process.env.SUPPORT_EMAIL_USER || process.env.GMAIL_USER;
-                emailPass = process.env.SUPPORT_EMAIL_PASS || process.env.GMAIL_PASS;
-                emailSender = process.env.GMAIL_USER || 'support@cdc-llc.net';
+                emailUser = process.env.SUPPORT_EMAIL_USER;
+                emailPass = process.env.SUPPORT_EMAIL_PASS;
+                emailSender = 'support@cdc-llc.net';
                 trackingPrefix = 'SUP';
+                smtpHost = 'smtp.zoho.com'; // জোহো সার্ভার
                 break;
             case 'info':
             default:
-                emailUser = process.env.INFO_EMAIL_USER || process.env.GMAIL_USER;
-                emailPass = process.env.INFO_EMAIL_PASS || process.env.GMAIL_PASS;
-                emailSender = process.env.GMAIL_USER || 'info@cdc-llc.net';
+                emailUser = process.env.GMAIL_USER;
+                emailPass = process.env.GMAIL_PASS;
+                emailSender = process.env.GMAIL_USER;
                 trackingPrefix = 'INQ';
+                smtpHost = 'smtp.gmail.com'; // জিমেইল সার্ভার
                 break;
         }
 
-        // ইউনিক ট্র্যাকিং কোড জেনারেটর
         const randomNum = Math.floor(100000 + Math.random() * 900000);
         const trackingCode = `CDC-${trackingPrefix}-${randomNum}`;
 
-        // সরাসরি জিমেইল SMTP ব্যবহার করার কনফিগারেশন
+        // ডাইনামিক কনফিগারেশন
         const smtpConfig = {
-            host: 'smtp.gmail.com',
+            host: smtpHost,
             port: 465,
             secure: true
         };
