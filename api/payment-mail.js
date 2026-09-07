@@ -22,7 +22,6 @@ export default async function handler(req, res) {
     }
 
     try {
-        // 👈 এখানে subject রিসিভ করা হচ্ছে
         const { clientEmail, subject, invoiceNumber, htmlBody, attachmentsList } = req.body;
 
         if (!clientEmail || !htmlBody) {
@@ -58,10 +57,10 @@ export default async function handler(req, res) {
 
         const mailOptions = {
             from: `"Civil Design & Construction LLC" <${senderEmail}>`,
-            replyTo: 'support@cdc-llc.net', // 👈 ক্লায়েন্ট রিপ্লাই দিলে সোজা সাপোর্ট মেইলে যাবে
+            replyTo: 'support@cdc-llc.net', // ক্লায়েন্ট রিপ্লাই দিলে সোজা সাপোর্ট মেইলে যাবে
             to: clientEmail,
-            // 👈 ফ্রন্টএন্ড থেকে পাঠানো সাবজেক্ট অথবা ডিফল্ট রিসিট সাবজেক্ট ব্যবহার করা হলো
-            subject: subject || `Payment Receipt #${invoiceNumber || 'General'} from Civil Design & Construction LLC`,
+            // 👈 এখানে ইনভয়েস শব্দটি চিরতরে বাদ দিয়ে সম্পূর্ণ পেমেন্ট রিসিট ফরম্যাট করা হলো
+            subject: subject || `Payment Receipt #${invoiceNumber || 'General'} from CDC LLC`,
             html: htmlBody,
             attachments: mailAttachments 
         };
