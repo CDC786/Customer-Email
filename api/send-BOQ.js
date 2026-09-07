@@ -61,7 +61,7 @@ export default async function handler(req, res) {
             replyTo: 'support@cdc-llc.net', 
             to: clientEmail,
             // কোনো bcc রাখা হয়নি, তাই কোনো কপি কারও কাছে যাবে না—শুধু ক্লায়েন্ট পাবে
-            subject: `Financial Proposal & BOQ - ${projectName || 'Civil Design & Construction LLC'}`,
+            subject: `Financial Proposal & BOQ - ${projectName #${invoiceNumber|| 'Civil Design & Construction LLC'}`,
             html: htmlBody, // The beautifully formatted HTML sent from the frontend
             attachments: mailAttachments
         };
