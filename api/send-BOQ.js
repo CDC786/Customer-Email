@@ -23,25 +23,26 @@ export default async function handler(req, res) {
     }
 
     try {
-        // Receiving data from the BOQ frontend form
-        const { clientEmail, projectName, htmlBody, attachmentsList } = req.body;
+        const { clientEmail, projectName, proposalId, htmlBody, attachmentsList } = req.body;
 
         if (!clientEmail || !htmlBody) {
             return res.status(400).json({ error: 'Client email and message content are required' });
         }
 
-        // জোহো SMTP কনফিগারেশন (info@cdc-llc.net এর মাধ্যমে BOQ প্রপোজাল পাঠানোর জন্য)
+        const senderEmail = process.env.INFO_EMAIL_USER || 'info@cdc-llc.net';
+
+        // জোহো SMTP কনফিগারেশন (info@cdc-llc.net এর মাধ্যমে প্রপোজাল পাঠানোর জন্য)
         const transporter = nodemailer.createTransport({
             host: 'smtp.zoho.com',
             port: 465,
-            secure: true, // 465 পোর্টের জন্য true
+            secure: true, 
             auth: {
-                user: process.env.INFO_EMAIL_USER, // info@cdc-llc.net
-                pass: process.env.INFO_EMAIL_PASS  // জোহো থেকে জেনারেট করা info মেইলের App Password
+                user: senderEmail, 
+                pass: process.env.INFO_EMAIL_PASS  
             }
         });
 
-        // Process attachments (Including the auto-generated BOQ Proposal PDF)
+        // Process attachments
         let mailAttachments = [];
         if (attachmentsList && Array.isArray(attachmentsList)) {
             attachmentsList.forEach(file => {
@@ -55,18 +56,16 @@ export default async function handler(req, res) {
             });
         }
 
-        // Email configurations
         const mailOptions = {
-            from: '"Civil Design & Construction LLC" <info@cdc-llc.net>',
-            replyTo: 'support@cdc-llc.net', 
+            from: `"Civil Design & Construction LLC" <${senderEmail}>`,
+            replyTo: 'support@cdc-llc.net', // 👈 ক্লায়েন্ট রিপ্লাই দিলে সোজা সাপোর্ট মেইলে যাবে
             to: clientEmail,
-            // কোনো bcc রাখা হয়নি, তাই কোনো কপি কারও কাছে যাবে না—শুধু ক্লায়েন্ট পাবে
-            subject: `Financial Proposal & BOQ - ${projectName #${invoiceNumber|| 'Civil Design & Construction LLC'}`,
-            html: htmlBody, // The beautifully formatted HTML sent from the frontend
+            // 👈 সিনট্যাক্স এরর ফিক্স করে সঠিক ফরম্যাটে সাবজেক্ট দেওয়া হলো
+            subject: `Financial Proposal #${proposalId || 'General'} for ${projectName || 'Project'} - Civil Design & Construction LLC`,
+            html: htmlBody,
             attachments: mailAttachments
         };
 
-        // Send the email
         await transporter.sendMail(mailOptions);
         return res.status(200).json({ success: true, message: 'BOQ Proposal Email sent successfully!' });
 
