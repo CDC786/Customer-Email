@@ -3,7 +3,7 @@ import nodemailer from 'nodemailer';
 export const config = {
     api: {
         bodyParser: {
-            sizeLimit: '20mb', // Handle auto-generated PDF and attachments safely
+            sizeLimit: '20mb',
         },
     },
 };
@@ -22,10 +22,11 @@ export default async function handler(req, res) {
     }
 
     try {
-        const { clientEmail, invoiceNumber, htmlBody, attachmentsList } = req.body;
+        // 👈 এখানে subject রিসিভ করা হচ্ছে
+        const { clientEmail, subject, invoiceNumber, htmlBody, attachmentsList } = req.body;
 
         if (!clientEmail || !htmlBody) {
-            return res.status(400).json({ error: 'Missing client email or invoice data' });
+            return res.status(400).json({ error: 'Missing client email or receipt data' });
         }
 
         const senderEmail = process.env.PAYMENT_EMAIL_USER || 'payment@cdc-llc.net';
@@ -59,16 +60,17 @@ export default async function handler(req, res) {
             from: `"Civil Design & Construction LLC" <${senderEmail}>`,
             replyTo: 'support@cdc-llc.net', // 👈 ক্লায়েন্ট রিপ্লাই দিলে সোজা সাপোর্ট মেইলে যাবে
             to: clientEmail,
-            subject: `Invoice #${invoiceNumber || 'General'} from Civil Design & Construction LLC`,
+            // 👈 ফ্রন্টএন্ড থেকে পাঠানো সাবজেক্ট অথবা ডিফল্ট রিসিট সাবজেক্ট ব্যবহার করা হলো
+            subject: subject || `Payment Receipt #${invoiceNumber || 'General'} from Civil Design & Construction LLC`,
             html: htmlBody,
             attachments: mailAttachments 
         };
 
         await transporter.sendMail(mailOptions);
-        return res.status(200).json({ success: true, message: 'Invoice sent successfully!' });
+        return res.status(200).json({ success: true, message: 'Payment receipt sent successfully!' });
 
     } catch (error) {
-        console.error("Invoice Email Error:", error);
-        return res.status(500).json({ error: "Failed to send invoice: " + error.message });
+        console.error("Payment Receipt Email Error:", error);
+        return res.status(500).json({ error: "Failed to send payment receipt: " + error.message });
     }
 }
