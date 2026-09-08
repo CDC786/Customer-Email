@@ -28,7 +28,7 @@ export default async function handler(req, res) {
     });
 
     try {
-        const { clientEmail, department, senderName } = req.body || {};
+        const { clientEmail, department, senderName, clientMessageId } = req.body || {};
 
         if (!clientEmail) {
             console.error("Error: Client email is missing in request body.");
@@ -103,7 +103,6 @@ export default async function handler(req, res) {
             }
         });
 
-        // শুধুমাত্র স্ক্রিনশটের নির্দিষ্ট অংশটুকুই রাখা হয়েছে
         const htmlBody = `
             <div style="font-family: Arial, sans-serif; background-color: #f4f6f9; padding: 30px 10px; text-align: left;">
                 <div style="max-width: 600px; margin: 0; background: #ffffff; padding: 35px; border-radius: 8px; border: 1px solid #dcdcdc; box-shadow: 0 2px 5px rgba(0,0,0,0.05); text-align: left;">
@@ -143,7 +142,13 @@ export default async function handler(req, res) {
             replyTo: emailSender,
             to: extractedEmail,
             subject: `[Tracking ID: ${trackingCode}] Message Received - Civil Design & Construction LLC`,
-            html: htmlBody
+            html: htmlBody,
+            ...(clientMessageId && {
+                headers: {
+                    'In-Reply-To': clientMessageId,
+                    'References': clientMessageId
+                }
+            })
         };
 
         const info = await transporter.sendMail(mailOptions);
