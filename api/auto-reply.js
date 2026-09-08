@@ -103,15 +103,10 @@ export default async function handler(req, res) {
             }
         });
 
-        // এখানে মার্জিন বামে (Left) নিয়ে আসার জন্য স্টাইল আপডেট করা হয়েছে
+        // শুধুমাত্র স্ক্রিনশটের নির্দিষ্ট অংশটুকুই রাখা হয়েছে
         const htmlBody = `
             <div style="font-family: Arial, sans-serif; background-color: #f4f6f9; padding: 30px 10px; text-align: left;">
                 <div style="max-width: 600px; margin: 0; background: #ffffff; padding: 35px; border-radius: 8px; border: 1px solid #dcdcdc; box-shadow: 0 2px 5px rgba(0,0,0,0.05); text-align: left;">
-                    
-                    <h2 style="color: #0056b3; margin-top: 0; text-align: left; font-size: 22px;">Civil Design & Construction LLC</h2>
-                    <p style="text-align: left; color: #666; font-size: 13px; margin-top: -5px;">Sheridan, Wyoming | www.cdc-llc.net</p>
-                    
-                    <hr style="border: none; border-top: 2px solid #0056b3; margin: 20px 0;">
                     
                     <p style="color: #333; font-size: 15px;">Dear ${senderName || 'Valued Client'},</p>
                     <p style="color: #444; font-size: 14px; line-height: 1.5;">
