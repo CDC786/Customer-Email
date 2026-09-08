@@ -123,10 +123,12 @@ export default async function handler(req, res) {
             </div>
         `;
 
-        // সাবজেক্টে ক্লায়েন্টের অরিজিনাল সাবজেক্ট বা Re: ফরম্যাট ব্যবহার করা হলো যাতে থ্রেড ঠিক থাকে
-        const replySubject = clientSubject 
-            ? `Re: ${clientSubject} [Tracking ID: ${trackingCode}]`
-            : `[Tracking ID: ${trackingCode}] Message Received - Civil Design & Construction LLC`;
+        // সাবজেক্ট থেকে ট্র্যাকিং কোড সম্পূর্ণ বাদ দেওয়া হলো। শুধু ক্লায়েন্টের সাবজেক্ট বা Re: রাখা হলো।
+        let replySubject = 'Message Received - Civil Design & Construction LLC';
+        if (clientSubject) {
+            const cleanSub = clientSubject.replace(/^Re:\s*/i, ''); // আগের Re থাকলে তা পরিষ্কার করে নেওয়া
+            replySubject = `Re: ${cleanSub}`;
+        }
 
         const mailOptions = {
             from: `"Civil Design & Construction LLC" <${emailSender}>`,
