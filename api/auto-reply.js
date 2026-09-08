@@ -21,17 +21,10 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
-    console.log("🔥 AUTO-REPLY API HIT", {
-        method: req.method,
-        time: new Date().toISOString(),
-        body: req.body
-    });
-
     try {
-        const { clientEmail, department, senderName, clientMessageId } = req.body || {};
+        const { clientEmail, department, senderName, clientMessageId, clientSubject } = req.body || {};
 
         if (!clientEmail) {
-            console.error("Error: Client email is missing in request body.");
             return res.status(400).json({ error: 'Client email is required' });
         }
 
@@ -40,9 +33,6 @@ export default async function handler(req, res) {
         if (emailMatch && emailMatch[1]) {
             extractedEmail = emailMatch[1];
         }
-
-        console.log("Extracted Client Email:", extractedEmail);
-        console.log("Target Department:", department);
 
         let emailUser, emailPass, emailSender, trackingPrefix, smtpHost;
         
@@ -89,14 +79,10 @@ export default async function handler(req, res) {
         const randomNum = Math.floor(100000 + Math.random() * 900000);
         const trackingCode = `CDC-${trackingPrefix}-${randomNum}`;
 
-        const smtpConfig = {
+        const transporter = nodemailer.createTransport({
             host: smtpHost,
             port: 465,
-            secure: true
-        };
-
-        const transporter = nodemailer.createTransport({
-            ...smtpConfig,
+            secure: true,
             auth: {
                 user: emailUser,
                 pass: emailPass
@@ -137,11 +123,16 @@ export default async function handler(req, res) {
             </div>
         `;
 
+        // সাবজেক্টে ক্লায়েন্টের অরিজিনাল সাবজেক্ট বা Re: ফরম্যাট ব্যবহার করা হলো যাতে থ্রেড ঠিক থাকে
+        const replySubject = clientSubject 
+            ? `Re: ${clientSubject} [Tracking ID: ${trackingCode}]`
+            : `[Tracking ID: ${trackingCode}] Message Received - Civil Design & Construction LLC`;
+
         const mailOptions = {
             from: `"Civil Design & Construction LLC" <${emailSender}>`,
             replyTo: emailSender,
             to: extractedEmail,
-            subject: `[Tracking ID: ${trackingCode}] Message Received - Civil Design & Construction LLC`,
+            subject: replySubject,
             html: htmlBody,
             ...(clientMessageId && {
                 headers: {
