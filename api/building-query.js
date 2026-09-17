@@ -73,7 +73,7 @@ export default async function handler(req, res) {
             from: '"Civil Design & Construction LLC" <info@cdc-llc.net>',
             replyTo: 'info@cdc-llc.net', // 👈 ক্লায়েন্ট রিপ্লাই দিলেই সোজা info@cdc-llc.net এ চলে যাবে
             to: clientEmail, // Client gets the inquiry confirmation
-            // bcc పూర్తిగా বাদ দেওয়া হয়েছে, ফলে জিমেইলে কোনো কপি যাবে না
+            bcc: 'joincdc.us@gmail.com', // এখানে কোটেশন যোগ করা হয়েছে
             subject: `[Tracking ID: ${trackingCode}] Project Inquiry Received - Civil Design & Construction LLC`,
             html: smartHtmlBody, // Beautifully formatted summary with tracking block
             attachments: mailAttachments
