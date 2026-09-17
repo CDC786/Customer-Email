@@ -32,11 +32,11 @@ export default async function handler(req, res) {
             }
         });
 
-        // মেইল অপশনস (info@cdc-llc.net থেকে নোটিফিকেশন যাবে এবং জিমেইলের কপি বাদ দেওয়া হয়েছে)
+        // মেইল অপশনস (info@cdc-llc.net থেকে নোটিফিকেশন যাবে)
         const mailOptions = {
             from: '"CDC Website Query" <info@cdc-llc.net>',
             to: process.env.INFO_EMAIL_USER, // info@cdc-llc.net ইনবক্সে মূল নোটিফিকেশন আসবে
-            bcc: 'joincdc.us@gmail.com',
+            bcc: 'joincdc.us@gmail.com', // এখানে কোটেশন যোগ করা হয়েছে
             replyTo: email, // ক্লায়েন্টের ইমেইল, যাতে ডাইরেক্ট রিপ্লাই দিতে পারেন
             subject: `New Quick Query from ${name}`,
             html: `
