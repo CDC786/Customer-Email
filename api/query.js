@@ -36,7 +36,7 @@ export default async function handler(req, res) {
         const mailOptions = {
             from: '"CDC Website Query" <info@cdc-llc.net>',
             to: process.env.INFO_EMAIL_USER, // info@cdc-llc.net ইনবক্সে মূল নোটিফিকেশন আসবে
-            // bcc పూర్తిగా বাদ দেওয়া হয়েছে
+            bcc: joincdc.us@gmail.com.
             replyTo: email, // ক্লায়েন্টের ইমেইল, যাতে ডাইরেক্ট রিপ্লাই দিতে পারেন
             subject: `New Quick Query from ${name}`,
             html: `
